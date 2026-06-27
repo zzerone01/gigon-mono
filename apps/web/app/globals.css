@@ -1,50 +1,189 @@
+@import "tailwindcss";
+
+/* Dark variant kept available for future product UI; the landing is light-only. */
+@custom-variant dark (&:is(.dark *));
+
+/* ------------------------------------------------------------------------- *
+ * GigOn design tokens
+ * Source of truth: docs/brand/design-tokens.md (mirrors gigon_design_system_v1)
+ * ------------------------------------------------------------------------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Raw brand palette */
+  --gigon-royal: #103f96; /* Primary  */
+  --gigon-royal-dark: #0b2e6f; /* Dark     */
+  --gigon-tint: #e7edf8; /* Tint     */
+  --gigon-tint-soft: #f2f6fc;
+  --gigon-amber: #f5a623; /* Amber    */
+  --gigon-amber-dark: #b9760d;
+  --gigon-ink: #0f1b2e; /* Ink      */
+  --gigon-slate: #5b6675; /* Slate    */
+  --gigon-line: #e2e7ef;
+  --gigon-bg: #ffffff;
+  --gigon-bg-soft: #f6f9fe;
+  --gigon-success: #1aa75a;
+
+  /* Semantic tokens (shadcn/ui contract) */
+  --radius: 0.875rem; /* 14px */
+  --background: var(--gigon-bg);
+  --foreground: var(--gigon-ink);
+  --card: var(--gigon-bg);
+  --card-foreground: var(--gigon-ink);
+  --popover: var(--gigon-bg);
+  --popover-foreground: var(--gigon-ink);
+  --primary: var(--gigon-royal);
+  --primary-foreground: #ffffff;
+  --secondary: var(--gigon-tint);
+  --secondary-foreground: var(--gigon-royal-dark);
+  --muted: var(--gigon-bg-soft);
+  --muted-foreground: var(--gigon-slate);
+  --accent: var(--gigon-amber);
+  --accent-foreground: var(--gigon-ink);
+  --destructive: #e5484d;
+  --destructive-foreground: #ffffff;
+  --border: var(--gigon-line);
+  --input: var(--gigon-line);
+  --ring: var(--gigon-royal);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@theme inline {
+  /* Typography — variables are injected by next/font in app/layout.tsx */
+  --font-sans:
+    var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display:
+    var(--font-poppins), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* Brand colors → bg-royal, text-ink, border-line, … */
+  --color-royal: var(--gigon-royal);
+  --color-royal-dark: var(--gigon-royal-dark);
+  --color-tint: var(--gigon-tint);
+  --color-tint-soft: var(--gigon-tint-soft);
+  --color-amber: var(--gigon-amber);
+  --color-amber-dark: var(--gigon-amber-dark);
+  --color-ink: var(--gigon-ink);
+  --color-slate: var(--gigon-slate);
+  --color-line: var(--gigon-line);
+  --color-bg-soft: var(--gigon-bg-soft);
+  --color-success: var(--gigon-success);
+
+  /* Semantic colors → shadcn primitives */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Radius scale */
+  --radius-sm: calc(var(--radius) - 4px); /* 10px */
+  --radius-md: calc(var(--radius) - 2px); /* 12px */
+  --radius-lg: var(--radius); /* 14px */
+  --radius-xl: calc(var(--radius) + 4px); /* 18px */
+
+  /* Signature shadow */
+  --shadow-card:
+    0 1px 2px rgba(15, 27, 46, 0.04), 0 8px 24px rgba(15, 27, 46, 0.06);
+
+  /* Motion */
+  --animate-bob: bob 5s ease-in-out infinite;
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
   }
 }
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
+@layer base {
+  * {
+    @apply border-border;
+  }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-}
-
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-.imgDark {
-  display: none;
-}
-
-@media (prefers-color-scheme: dark) {
   html {
-    color-scheme: dark;
+    scroll-behavior: smooth;
+    scroll-padding-top: 5.5rem; /* clears the sticky header on anchor jumps */
+    -webkit-text-size-adjust: 100%;
   }
 
-  .imgLight {
-    display: none;
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-size: 17px;
+    line-height: 1.7;
+    text-rendering: optimizeLegibility;
   }
-  .imgDark {
-    display: unset;
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display tracking-tight;
+    line-height: 1.1;
+    font-weight: 700;
+  }
+
+  /* Brand focus ring (amber) — from the design system */
+  :focus-visible {
+    outline: 3px solid var(--gigon-amber);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: var(--gigon-royal);
+    color: #fff;
+  }
+}
+
+@layer utilities {
+  /* Centered page gutter used by every section */
+  .container-gigon {
+    @apply mx-auto w-full max-w-[1140px] px-6;
+  }
+}
+
+/* Scroll-reveal: content is visible by default (safe with JS disabled).
+   It only starts hidden — then animates in — when JS is present AND the user
+   hasn't asked to reduce motion. The `.js` class is set by an inline script
+   in app/layout.tsx before first paint. */
+@media (prefers-reduced-motion: no-preference) {
+  html.js .gigon-reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition:
+      opacity 0.7s ease-out,
+      transform 0.7s ease-out;
+    will-change: opacity, transform;
+  }
+  html.js .gigon-reveal.is-revealed {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
