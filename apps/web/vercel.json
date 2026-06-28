@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.gigon.io" }],
+      "destination": "https://gigon.io/:path*",
+      "permanent": true
+    }
+  ]
+}
