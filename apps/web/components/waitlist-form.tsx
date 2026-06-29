@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { CheckCircle2, Loader2 } from "lucide-react";
+import { usePostHog } from "@posthog/react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,7 @@ export function WaitlistForm({
   className?: string;
 }) {
   const onRoyal = tone === "onRoyal";
+  const posthog = usePostHog();
   const [role, setRole] = React.useState<Role>(defaultRole);
   const [status, setStatus] = React.useState<Status>("idle");
   const [error, setError] = React.useState("");
@@ -72,6 +74,10 @@ export function WaitlistForm({
       }
       setStatus("success");
       formEl.reset();
+      // Tie the signup to a person (keyed by email) and record the conversion.
+      // `source` distinguishes which CTA converted (hero, final-cta, …).
+      posthog?.identify(email, { email, role });
+      posthog?.capture("waitlist_joined", { role, source });
     } catch (err) {
       setStatus("error");
       setError(

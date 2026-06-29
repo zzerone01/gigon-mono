@@ -3,6 +3,7 @@ import { Inter, Poppins } from "next/font/google";
 
 import "./globals.css";
 import { siteConfig } from "@/lib/site";
+import { PostHogProvider } from "./providers";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -79,7 +80,7 @@ export default function RootLayout({
             __html: `document.documentElement.classList.add('js')`,
           }}
         />
-        {children}
+        <PostHogProvider>{children}</PostHogProvider>
       </body>
     </html>
   );
