@@ -28,9 +28,8 @@ export const metadata: Metadata = {
   keywords: [
     "GigOn",
     "gig work",
-    "Cebu",
-    "Mactan",
     "Philippines",
+    "nationwide",
     "local jobs",
     "part-time work",
     "hire nearby",

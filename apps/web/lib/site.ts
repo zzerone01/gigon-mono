@@ -6,10 +6,13 @@ export const siteConfig = {
   domain: "gigon.io",
   url: "https://gigon.io",
   description:
-    "GigOn connects small businesses with trusted workers nearby for the quick 1–3 hour jobs you need filled right now. No more hunting through Facebook groups. Now in private beta in Cebu–Mactan.",
+    "GigOn connects small businesses with trusted workers nearby for the quick 1–3 hour jobs you need filled right now. No more hunting through Facebook groups. Now in private beta across the Philippines.",
   shortDescription:
-    "Short, local gigs — matched with trusted people nearby. Now in private beta in Cebu–Mactan.",
-  locationLabel: "Cebu–Mactan",
+    "Short, local gigs — matched with trusted people nearby. Now in private beta across the Philippines.",
+  /** Grammatical, for in-sentence use ("Be first in the Philippines."). */
+  locationLabel: "the Philippines",
+  /** Short label, for chips/eyebrows ("Now in private beta · Philippines"). */
+  region: "Philippines",
   contactEmail: "hello@gigon.io",
   nav: [
     { label: "How it works", href: "#how" },

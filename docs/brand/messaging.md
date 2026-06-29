@@ -54,11 +54,11 @@ trust, close to home.
 3. **Audience split** — business vs worker value, side by side.
 4. **How it works** — Post → Match → Get it done → Both confirm.
 5. **Why GigOn** — the four trust pillars.
-6. **Final CTA** — _Be first in Cebu–Mactan._ + waitlist.
+6. **Final CTA** — _Be first in the Philippines._ + waitlist.
 
 ## Localisation notes
 
-- **Market:** Philippines; **beta city:** Cebu–Mactan (`en_PH` locale).
+- **Market:** Philippines — nationwide private beta (`en_PH` locale).
 - **Currency:** peso, `₱` glyph, no decimals on the landing (`₱300`).
 - **Language:** clear English (the norm for PH urban business). Keep it simple
   so it reads naturally to Bisaya/Tagalog speakers; avoid heavy idiom.
@@ -67,12 +67,12 @@ trust, close to home.
 ## Approved copy bank
 
 - Tagline: **Your gig is on.**
-- Eyebrow: **Now in private beta · Cebu–Mactan**
+- Eyebrow: **Now in private beta · Philippines**
 - Waitlist button: **Join the waitlist**
 - Waitlist reassurance: **No spam — just one email when GigOn opens near you.**
 - Success: **You're on the list.** / _We'll email you the moment GigOn goes live
-  in Cebu–Mactan._
-- Final CTA: **Be first in Cebu–Mactan.**
+  in the Philippines._
+- Final CTA: **Be first in the Philippines.**
 
 ## Out of scope (for now)
 

@@ -52,8 +52,8 @@ fairly, confirmed by both sides.
    clear and universal, not slang-heavy.)
 2. **Trust-forward.** Lead with safety, proximity, and "you'll actually get
    paid." Trust isn't a feature; it's the point.
-3. **Local & concrete.** Real places (Cebu–Mactan), real money (₱), real time
-   (1–3 hrs). Avoid abstract startup-speak.
+3. **Local & concrete.** Real places (your city, your barangay), real money (₱),
+   real time (1–3 hrs). Avoid abstract startup-speak.
 4. **Warm, not hype.** Encouraging and human. No exclamation-mark salesmanship.
 
 **Do / Don't**
@@ -69,7 +69,7 @@ fairly, confirmed by both sides.
 
 - Brand: **GigOn**. Tagline: _Your gig is on._
 - Currency: peso glyph `₱` with no space (`₱300`).
-- Ranges use an en dash: `1–3 hrs`, `Cebu–Mactan`.
+- Ranges use an en dash: `1–3 hrs`, `Mon–Sat`.
 
 ## Accessibility (part of the brand)
 

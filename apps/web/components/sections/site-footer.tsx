@@ -23,8 +23,8 @@ const COLUMNS = [
   {
     heading: "Coverage",
     links: [
-      { label: "Cebu–Mactan", href: "#top" },
-      { label: "More cities soon", href: "#waitlist" },
+      { label: "Philippines", href: "#top" },
+      { label: "Nationwide rollout", href: "#waitlist" },
     ],
   },
 ];
@@ -67,7 +67,7 @@ export function SiteFooter() {
 
         <div className="mt-10 flex flex-col items-start justify-between gap-3 border-t border-line pt-6 text-[13.5px] text-slate sm:flex-row sm:items-center">
           <span>© {year} GigOn. All rights reserved.</span>
-          <span>Private beta · Cebu, Philippines</span>
+          <span>Private beta · Philippines</span>
         </div>
       </div>
     </footer>

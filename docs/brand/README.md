@@ -4,7 +4,7 @@
 > GigOn is a local, map-first marketplace that connects small businesses with
 > trusted workers nearby for short **1–3 hour** gigs (cleaning, laundry, extra
 > hands for a rush). Think _"당근알바, for the Philippines"_ — proximity and
-> trust first. Currently a **private beta in Cebu–Mactan**; the public face is a
+> trust first. Currently a **nationwide private beta in the Philippines**; the public face is a
 > landing page that validates the problem and collects waitlist sign-ups.
 
 This folder is the source of truth for everything brand. The implementation

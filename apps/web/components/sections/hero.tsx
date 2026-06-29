@@ -23,7 +23,7 @@ export function Hero() {
               <span className="absolute inline-flex size-2 animate-ping rounded-full bg-success/70" />
               <span className="relative inline-flex size-2 rounded-full bg-success" />
             </span>
-            Now in private beta · {siteConfig.locationLabel}
+            Now in private beta · {siteConfig.region}
           </Badge>
 
           <h1 className="text-balance text-[clamp(2.5rem,8vw,4.2rem)] leading-[1.04] text-ink">
