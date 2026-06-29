@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1080px; overflow: hidden; }
+  .stage {
+    width: 1080px;
+    height: 1080px;
+    position: relative;
+    /* Royal radial — depth from upper-left toward royal-dark edges */
+    background:
+      radial-gradient(120% 120% at 36% 30%, #2059c4 0%, #1346a3 38%, #103f96 60%, #0b2e6f 100%);
+    display: grid;
+    place-items: center;
+  }
+  /* subtle vignette for a premium edge once cropped to a circle */
+  .stage::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: radial-gradient(70% 70% at 50% 50%, transparent 62%, rgba(7,24,60,0.35) 100%);
+    pointer-events: none;
+  }
+  .glyph { width: 560px; height: 560px; display: block; }
+  /* a faint soft glow behind the mark */
+  .stage::before {
+    content: "";
+    position: absolute;
+    width: 720px; height: 720px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 68%);
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <svg class="glyph" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg" fill="none" role="img" aria-label="GigOn">
+      <g transform="translate(15 15)" stroke="#ffffff" stroke-width="7.2" stroke-linecap="round" fill="none">
+        <path d="M48 19.8 A21 21 0 1 1 18 19.8" />
+        <line x1="33" y1="33" x2="33" y2="11.4" />
+      </g>
+    </svg>
+  </div>
+</body>
+</html>
