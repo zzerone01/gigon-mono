@@ -16,6 +16,39 @@ const ROLE_OPTIONS: { value: Role; label: string }[] = [
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
+const STORAGE_KEY = "gigon:waitlist:joined";
+
+/** Dedup identity: same person + same role — across any CTA (hero, final-cta…).
+ *  worker and business count as separate signups, so role is part of the key. */
+function joinKey(email: string, role: Role): string {
+  return `${email.toLowerCase()}::${role}`;
+}
+
+/** Keys this browser has already submitted. Best-effort — clears with storage. */
+function readJoined(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const list = raw ? (JSON.parse(raw) as unknown) : [];
+    return new Set(
+      Array.isArray(list) ? list.filter((v): v is string => typeof v === "string") : [],
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+function rememberJoined(key: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    const set = readJoined();
+    set.add(key);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify([...set]));
+  } catch {
+    // localStorage unavailable (private mode / quota) — dedup is best-effort.
+  }
+}
+
 type Tone = "light" | "onRoyal";
 type Status = "idle" | "submitting" | "success" | "error";
 
@@ -37,6 +70,7 @@ export function WaitlistForm({
   const posthog = usePostHog();
   const [role, setRole] = React.useState<Role>(defaultRole);
   const [status, setStatus] = React.useState<Status>("idle");
+  const [already, setAlready] = React.useState(false);
   const [error, setError] = React.useState("");
   const uid = React.useId();
   const inputId = emailId ?? `${uid}-email`;
@@ -51,6 +85,17 @@ export function WaitlistForm({
     if (!EMAIL_RE.test(email)) {
       setStatus("error");
       setError("Please enter a valid email address.");
+      return;
+    }
+
+    // Already joined as this role on this device → confirm, skip the re-submit.
+    // Keeps duplicates out of Formspree (e.g. hero, then again at final-cta).
+    const key = joinKey(email, role);
+    if (readJoined().has(key)) {
+      formEl.reset();
+      setAlready(true);
+      setStatus("success");
+      posthog?.capture("waitlist_already_joined", { role, source });
       return;
     }
 
@@ -72,6 +117,8 @@ export function WaitlistForm({
         } | null;
         throw new Error(data?.error ?? "Something went wrong. Please try again.");
       }
+      rememberJoined(key);
+      setAlready(false);
       setStatus("success");
       formEl.reset();
       // Tie the signup to a person (keyed by email) and record the conversion.
@@ -105,10 +152,12 @@ export function WaitlistForm({
               onRoyal ? "text-white" : "text-ink",
             )}
           >
-            You&rsquo;re on the list.
+            {already ? "You’re already on the list." : "You’re on the list."}
           </p>
           <p className={cn("text-sm", onRoyal ? "text-tint/85" : "text-slate")}>
-            We&rsquo;ll email you the moment GigOn goes live in{" "}
+            {already
+              ? "We’ve got this email saved — we’ll reach out when GigOn opens in "
+              : "We’ll email you the moment GigOn goes live in "}
             {siteConfig.locationLabel}.
           </p>
         </div>
