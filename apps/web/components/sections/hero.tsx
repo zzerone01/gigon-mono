@@ -1,6 +1,6 @@
 import { MapPin, Star, Wallet, type LucideIcon } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@repo/ui/components/badge";
 import { Reveal } from "@/components/reveal";
 import { WaitlistForm } from "@/components/waitlist-form";
 import { MapPreview } from "@/components/sections/map-preview";

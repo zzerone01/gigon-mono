@@ -11,6 +11,8 @@ const POSTHOG_ASSETS_HOST = POSTHOG_HOST.replace(
 );
 
 const nextConfig = {
+  // Compile the shared design-system package (ships .tsx source, not built JS).
+  transpilePackages: ["@repo/ui"],
   // Required so the /ingest proxy paths below aren't lost to trailing-slash redirects.
   skipTrailingSlashRedirect: true,
   async rewrites() {

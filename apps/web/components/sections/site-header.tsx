@@ -4,8 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 
-import { Logo } from "@/components/brand/logo";
-import { Button } from "@/components/ui/button";
+import { Logo } from "@repo/ui/brand/logo";
+import { Button } from "@repo/ui/components/button";
 import { siteConfig } from "@/lib/site";
 
 export function SiteHeader() {

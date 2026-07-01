@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { Logo } from "@/components/brand/logo";
+import { Logo } from "@repo/ui/brand/logo";
 import { siteConfig } from "@/lib/site";
 
 const COLUMNS = [

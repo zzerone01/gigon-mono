@@ -3,7 +3,7 @@
 import * as React from "react";
 import { ArrowRight } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@repo/ui/components/button";
 import { cn } from "@/lib/utils";
 
 /**
