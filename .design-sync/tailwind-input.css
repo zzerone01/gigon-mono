@@ -1,0 +1,19 @@
+/* Design-sync CSS entry. Compiles the shared @repo/ui Tailwind v4 tokens + only
+   the utilities the DS components and authored previews actually use, into a
+   static stylesheet the Claude Design bundle can ship (cfg.cssEntry). Fonts ship
+   separately via cfg.extraFonts (.design-sync/fonts). */
+@import "../packages/ui/src/styles/globals.css";
+
+/* Scan the shared DS components and authored previews so every utility they
+   reference is emitted (Tailwind v4 tree-shakes to used classes). */
+@source "../packages/ui/src/**/*.tsx";
+@source "./previews/**/*.tsx";
+@source "./ds-entry.tsx";
+
+/* next/font injects these on <html> in the real app; bind them to the shipped
+   families here so var(--font-inter)/var(--font-poppins) resolve in previews. */
+:root {
+  --font-inter: "Inter", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-poppins: "Poppins", var(--font-inter);
+}
