@@ -269,7 +269,9 @@ export function AppShell({
                   Workers are never charged.
                 </span>
                 <span className="text-[10.5px] text-line-dashed">
-                  Terms · Privacy · English (Cebuano soon)
+                  <a href="/terms" className="underline underline-offset-2">Terms</a> ·{" "}
+                  <a href="/privacy" className="underline underline-offset-2">Privacy</a> · English
+                  (Cebuano soon)
                 </span>
               </div>
             </div>

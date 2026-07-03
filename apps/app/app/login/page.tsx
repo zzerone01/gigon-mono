@@ -146,8 +146,10 @@ export default function LoginPage() {
         )}
       </div>
       <p className="px-7 pb-6 text-[10.5px] leading-relaxed text-ink-muted">
-        By continuing you agree to the Terms — you work with businesses directly as an independent
-        contractor.{" "}
+        By continuing you agree to the{" "}
+        <a href="/terms" className="underline underline-offset-2">Terms</a> and{" "}
+        <a href="/privacy" className="underline underline-offset-2">Privacy Policy</a> — you work
+        with businesses directly as an independent contractor.{" "}
         <span className="font-semibold text-slate">
           GigOn is free during the pilot; a small per-match fee for businesses is planned later.
         </span>

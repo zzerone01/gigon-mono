@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Icon, GIG_TYPE_ICON } from "@/components/icons";
-import { ChatSheet, RateSheet } from "@/components/sheets";
+import { CancelSheet, ChatSheet, RateSheet } from "@/components/sheets";
 import { useToast } from "@/components/shell";
 import { Chip, LiveDot, MiniStepper, MonoBadge, Sheet } from "@/components/ui";
 import {
+  EMPLOYER_CANCEL_REASONS,
   EMPLOYER_RATE_TAGS,
   GIG_TYPES,
   badgeStyle,
@@ -46,6 +47,8 @@ export function BusinessApp({ profile }: { profile: Profile }) {
   const [postOpen, setPostOpen] = useState(false);
   const [confirmApp, setConfirmApp] = useState<AppWithWorker | null>(null);
   const [noShowOpen, setNoShowOpen] = useState(false);
+  const [cancelMatchOpen, setCancelMatchOpen] = useState(false);
+  const [cancelGigOpen, setCancelGigOpen] = useState(false);
   const [rateOpen, setRateOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [pinDigits, setPinDigits] = useState<string | null>(null);
@@ -56,6 +59,8 @@ export function BusinessApp({ profile }: { profile: Profile }) {
   /* ------------------------------ data ------------------------------ */
 
   const loadAll = useCallback(async () => {
+    // Sweep POSTED gigs past their expiry so the console reflects EXPIRED
+    await supabase.rpc("expire_stale_gigs");
     const { data: g } = await supabase
       .from("gigs")
       .select("*")
@@ -150,6 +155,10 @@ export function BusinessApp({ profile }: { profile: Profile }) {
             toast("PIN confirmed · COMPLETED", "Both sides confirmed — reviews unlocked");
             setPinDigits(null);
           }
+          if (next.status === "CANCELLED" && next.cancelled_by !== me) {
+            toast("Worker cancelled", "Recorded on their profile · your gig is live again");
+            setPinDigits(null);
+          }
           loadAll();
         },
       )
@@ -206,6 +215,31 @@ export function BusinessApp({ profile }: { profile: Profile }) {
     if (error) return toast("Couldn't record no-show", error.message);
     toast("No-show recorded", "Logged on the worker's profile · slot reopened for other applicants");
     setPinDigits(null);
+    loadAll();
+  };
+
+  const cancelMatch = async (reason: string) => {
+    if (!match) return;
+    const { error } = await supabase.rpc("cancel_match", {
+      p_match: match.id,
+      p_reason: reason,
+    });
+    setCancelMatchOpen(false);
+    if (error) return toast("Couldn't cancel", error.message);
+    toast("Gig cancelled", `${firstName(match.worker.full_name)} was notified · posting closed`);
+    setPinDigits(null);
+    loadAll();
+  };
+
+  const cancelGig = async (reason: string) => {
+    if (!gig) return;
+    const { error } = await supabase.rpc("cancel_gig", {
+      p_gig: gig.id,
+      p_reason: reason,
+    });
+    setCancelGigOpen(false);
+    if (error) return toast("Couldn't cancel the posting", error.message);
+    toast("Posting cancelled", "Applicants were released — post again anytime");
     loadAll();
   };
 
@@ -452,6 +486,12 @@ export function BusinessApp({ profile }: { profile: Profile }) {
                     </div>
                   </>
                 )}
+                <button
+                  onClick={() => setCancelGigOpen(true)}
+                  className="self-center p-0.5 text-[11.5px] text-ink-muted underline underline-offset-2 md:self-start"
+                >
+                  Don&apos;t need help anymore? Cancel this posting
+                </button>
               </>
             )}
 
@@ -565,12 +605,20 @@ export function BusinessApp({ profile }: { profile: Profile }) {
                 )}
 
                 {match.status === "MATCHED" && (
-                  <button
-                    onClick={() => setNoShowOpen(true)}
-                    className="self-center p-0.5 text-[11.5px] text-ink-muted underline underline-offset-2 md:self-start"
-                  >
-                    Worker hasn&apos;t arrived? Report a no-show
-                  </button>
+                  <div className="flex flex-col items-center gap-1 md:items-start">
+                    <button
+                      onClick={() => setNoShowOpen(true)}
+                      className="p-0.5 text-[11.5px] text-ink-muted underline underline-offset-2"
+                    >
+                      Worker hasn&apos;t arrived? Report a no-show
+                    </button>
+                    <button
+                      onClick={() => setCancelMatchOpen(true)}
+                      className="p-0.5 text-[11.5px] text-ink-muted underline underline-offset-2"
+                    >
+                      Plans changed? Cancel this gig
+                    </button>
+                  </div>
                 )}
               </div>
             )}
@@ -637,6 +685,28 @@ export function BusinessApp({ profile }: { profile: Profile }) {
             </button>
           </div>
         </Sheet>
+      )}
+
+      {cancelGigOpen && gig && (
+        <CancelSheet
+          title="Cancel this posting?"
+          sub="It comes off the feed right away and applicants are released. No penalty — nothing was matched yet."
+          reasons={EMPLOYER_CANCEL_REASONS}
+          confirmLabel="Cancel the posting"
+          onSubmit={cancelGig}
+          onClose={() => setCancelGigOpen(false)}
+        />
+      )}
+
+      {cancelMatchOpen && match && (
+        <CancelSheet
+          title={`Cancel on ${firstName(match.worker.full_name)}?`}
+          sub="They'll be notified right away. Cancelling a matched gig is recorded on your business profile."
+          reasons={EMPLOYER_CANCEL_REASONS}
+          confirmLabel="Cancel the gig"
+          onSubmit={cancelMatch}
+          onClose={() => setCancelMatchOpen(false)}
+        />
       )}
 
       {noShowOpen && match && (

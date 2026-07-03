@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Icon, GIG_TYPE_ICON } from "@/components/icons";
-import { ChatSheet, RateSheet } from "@/components/sheets";
+import { CancelSheet, ChatSheet, RateSheet } from "@/components/sheets";
 import { useToast } from "@/components/shell";
 import { Chip, LiveDot, MiniStepper, MonoBadge, Sheet } from "@/components/ui";
 import { MapView } from "@/components/map-view";
 import {
   DISPUTE_REASONS,
   FILTERS,
+  WORKER_CANCEL_REASONS,
   WORKER_RATE_TAGS,
   badgeStyle,
   firstName,
@@ -52,6 +53,7 @@ export function WorkerApp({ profile }: { profile: Profile }) {
   const [pinOpen, setPinOpen] = useState(false);
   const [rateOpen, setRateOpen] = useState(false);
   const [disputeOpen, setDisputeOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [unread, setUnread] = useState(0);
   const chatOpenRef = useRef(false);
@@ -60,6 +62,8 @@ export function WorkerApp({ profile }: { profile: Profile }) {
   /* ------------------------------ data ------------------------------ */
 
   const loadAll = useCallback(async () => {
+    // Sweep POSTED gigs past their expiry before reading the feed
+    await supabase.rpc("expire_stale_gigs");
     const [gigsRes, appsRes, matchRes] = await Promise.all([
       supabase
         .from("gigs")
@@ -126,6 +130,9 @@ export function WorkerApp({ profile }: { profile: Profile }) {
           const next = payload.new as Match;
           if (next.status === "NO_SHOW") {
             toast("No-show recorded", "This gig was reopened by the business");
+          }
+          if (next.status === "CANCELLED" && next.cancelled_by !== me) {
+            toast("Gig cancelled by the business", "You're free to apply to other gigs nearby");
           }
           loadAll();
         },
@@ -226,6 +233,18 @@ export function WorkerApp({ profile }: { profile: Profile }) {
     loadAll();
   };
 
+  const cancelMatch = async (reason: string) => {
+    if (!activeMatch) return;
+    const { error } = await supabase.rpc("cancel_match", {
+      p_match: activeMatch.id,
+      p_reason: reason,
+    });
+    setCancelOpen(false);
+    if (error) return toast("Couldn't cancel", error.message);
+    toast("Gig cancelled", "Recorded on your profile — the posting reopened for others");
+    loadAll();
+  };
+
   const submitReview = async (stars: number, tags: string[], comment: string) => {
     if (!activeMatch) return;
     const { error } = await supabase.rpc("post_review", {
@@ -286,6 +305,14 @@ export function WorkerApp({ profile }: { profile: Profile }) {
                   Dispute
                 </button>
               )
+            )}
+            {banStatus === "MATCHED" && (
+              <button
+                onClick={() => setCancelOpen(true)}
+                className="shrink-0 text-[10.5px] text-ink-muted underline underline-offset-2"
+              >
+                Cancel
+              </button>
             )}
             {banStatus === "MATCHED" && (
               <button
@@ -394,7 +421,9 @@ export function WorkerApp({ profile }: { profile: Profile }) {
                 <span className="font-display text-[12.5px] font-bold">GigOn</span>
               </span>
               <span className="text-center text-[10px] leading-relaxed text-ink-muted">
-                © 2026 GigOn · Terms · Privacy · English (Cebuano soon)
+                © 2026 GigOn · <a href="/terms" className="underline underline-offset-2">Terms</a> ·{" "}
+                <a href="/privacy" className="underline underline-offset-2">Privacy</a> · English
+                (Cebuano soon)
                 <br />
                 Free during the pilot — per-match fee for businesses planned later.
               </span>
@@ -458,6 +487,17 @@ export function WorkerApp({ profile }: { profile: Profile }) {
           placeholder="Say a word about the gig (optional)"
           onSubmit={submitReview}
           onClose={() => setRateOpen(false)}
+        />
+      )}
+
+      {cancelOpen && activeMatch && (
+        <CancelSheet
+          title="Cancel this gig?"
+          sub={`${activeMatch.gig.employer.business_name ?? "The business"} will be notified and the posting reopens for other workers. Cancellations are recorded on your profile.`}
+          reasons={WORKER_CANCEL_REASONS}
+          confirmLabel="Cancel the gig"
+          onSubmit={cancelMatch}
+          onClose={() => setCancelOpen(false)}
         />
       )}
 

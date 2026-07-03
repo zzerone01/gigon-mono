@@ -31,6 +31,18 @@ export const DISPUTE_REASONS = [
   "Pay was different than agreed",
   "Work quality / other",
 ];
+export const WORKER_CANCEL_REASONS = [
+  "Emergency — can't make it",
+  "Schedule conflict",
+  "Took another gig",
+  "Other",
+];
+export const EMPLOYER_CANCEL_REASONS = [
+  "No longer needed",
+  "Rescheduled — will repost",
+  "Made other arrangements",
+  "Other",
+];
 
 export function initials(name: string | null | undefined): string {
   if (!name) return "?";
@@ -73,6 +85,10 @@ export function badgeStyle(status: string): { label: string; bg: string; color: 
       return { label: "COMPLETED", bg: "#1AA75A", color: "#FFFFFF" };
     case "NO_SHOW":
       return { label: "NO_SHOW", bg: "#D92D20", color: "#FFFFFF" };
+    case "CANCELLED":
+      return { label: "CANCELLED", bg: "#5B6675", color: "#FFFFFF" };
+    case "EXPIRED":
+      return { label: "EXPIRED", bg: "#E7EDF8", color: "#5B6675" };
     default:
       return { label: status, bg: "#E7EDF8", color: "#0B2E6F" };
   }

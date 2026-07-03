@@ -177,6 +177,92 @@ export function ChatSheet({
   );
 }
 
+/* ----------------------------- cancel sheet ----------------------------- */
+
+export function CancelSheet({
+  title,
+  sub,
+  reasons,
+  confirmLabel,
+  onSubmit,
+  onClose,
+}: {
+  title: string;
+  sub: string;
+  reasons: string[];
+  confirmLabel: string;
+  onSubmit: (reason: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [reason, setReason] = useState(-1);
+  const [busy, setBusy] = useState(false);
+  const can = reason >= 0 && !busy;
+
+  return (
+    <Sheet onClose={onClose} z={45}>
+      <div className="flex flex-col gap-3 rounded-t-[18px] p-5 pt-3.5">
+        <div className="h-1 w-10 self-center rounded-full bg-line" />
+        <div className="flex items-start justify-between gap-2.5">
+          <div className="flex flex-col gap-1">
+            <h2 className="font-display text-[17px] font-semibold tracking-tight">{title}</h2>
+            <p className="text-[11.5px] leading-normal text-slate">{sub}</p>
+          </div>
+          <button
+            aria-label="Close"
+            onClick={onClose}
+            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-tint-soft text-slate"
+          >
+            <Icon name="x" size={14} strokeWidth={2.2} />
+          </button>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          {reasons.map((label, i) => {
+            const on = reason === i;
+            return (
+              <button
+                key={label}
+                onClick={() => setReason(i)}
+                className={`flex items-center gap-2.5 rounded-[11px] border-[1.5px] px-3 py-[11px] text-left ${
+                  on ? "border-royal bg-tint-soft" : "border-line bg-white"
+                }`}
+              >
+                <span
+                  className={`flex size-[17px] shrink-0 items-center justify-center rounded-full border-[1.5px] ${
+                    on ? "border-royal" : "border-line-dashed"
+                  }`}
+                >
+                  {on && <span className="size-[7px] rounded-full bg-royal" />}
+                </span>
+                <span className="text-[12.5px] font-medium">{label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <button
+          onClick={async () => {
+            if (!can) return;
+            setBusy(true);
+            await onSubmit(reasons[reason]!);
+            setBusy(false);
+          }}
+          disabled={!can}
+          className={`h-12 w-full rounded-[10px] text-[13.5px] font-semibold ${
+            can ? "bg-red text-white" : "bg-line text-ink-muted"
+          }`}
+        >
+          {busy ? "Cancelling…" : confirmLabel}
+        </button>
+        <button
+          onClick={onClose}
+          className="h-9 w-full rounded-[10px] text-[12.5px] font-semibold text-slate"
+        >
+          Keep the gig
+        </button>
+      </div>
+    </Sheet>
+  );
+}
+
 /* ------------------------------ rate sheet ------------------------------ */
 
 export function RateSheet({
