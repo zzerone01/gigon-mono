@@ -19,6 +19,8 @@ lives in `apps/web` and the visual tokens are defined once in
 | [`design-tokens.md`](./design-tokens.md) | Colour, typography, radius, shadow, spacing — the token reference |
 | [`messaging.md`](./messaging.md) | Positioning, value props, audiences, approved copy, localisation |
 | [`components.md`](./components.md) | shadcn/ui + lucide component inventory and how to extend it |
+| [`assets/`](./assets/README.md) | Master mark SVGs + generator for every app icon / OG image (web, app, mobile) |
+| [`social/`](./social/README.md) | Facebook profile & cover exports and their HTML sources |
 
 For running the site and configuring the waitlist, see
 [`apps/web/README.md`](../../apps/web/README.md).

@@ -21,10 +21,13 @@ instantly as "switch on" and ties straight to the tagline, _Your gig is on._
 - **Lockup:** mark + wordmark, horizontally aligned, with the tile roughly the
   cap-height of the wordmark.
 
-In code this is the [`Logo`](../../apps/web/components/brand/logo.tsx) component
-(`<Logo />`, `<LogoMark />`, with `size` and `tone` props). Static assets:
-[`apps/web/public/logo-mark.svg`](../../apps/web/public/logo-mark.svg) and the
-favicon [`apps/web/app/icon.svg`](../../apps/web/app/icon.svg).
+In code this is the [`Logo`](../../packages/ui/src/brand/logo.tsx) component
+from `@repo/ui` (`<Logo />`, `<LogoMark />`, with `size` and `tone` props).
+Static assets: master SVGs and the generator for every app icon / OG image
+live in [`assets/`](./assets/README.md); the hand-tuned favicons are
+[`apps/web/app/icon.svg`](../../apps/web/app/icon.svg) and
+[`apps/app/app/icon.svg`](../../apps/app/app/icon.svg), plus
+[`apps/web/public/logo-mark.svg`](../../apps/web/public/logo-mark.svg).
 
 ### Clear space & size
 

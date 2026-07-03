@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     template: "%s — GigOn",
   },
   description:
-    "Short, local gigs matched with trusted people nearby — in Mactan. Free during the pilot.",
+    "Short, local gigs matched with trusted people nearby. Free during the pilot.",
   applicationName: "GigOn",
 };
 
