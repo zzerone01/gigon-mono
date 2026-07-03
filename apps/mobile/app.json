@@ -10,10 +10,10 @@
     "backgroundColor": "#FFFFFF",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "io.gigon.app"
+      "bundleIdentifier": "com.gigon.app"
     },
     "android": {
-      "package": "io.gigon.app",
+      "package": "com.gigon.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
