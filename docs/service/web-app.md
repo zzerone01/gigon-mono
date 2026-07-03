@@ -10,9 +10,10 @@ Next 16 (App Router, Turbopack) · Tailwind v4 + `@repo/ui` 토큰 · Supabase(@
 | `/onboarding` | 역할 선택 + 이름/상호/초대코드 + 위치(geolocation, 8초 폴백) |
 | `/` | 워커 홈 (서버 게이트 → `WorkerApp`) |
 | `/business` | 사장님 콘솔 (서버 게이트 → `BusinessApp`) |
+| `/terms` `/privacy` | 약관/개인정보 (공개, `app/(legal)/`) — 드로어/푸터/로그인에서 링크 |
 
-게이트: `proxy.ts`(Next 16 미들웨어)가 세션 갱신+로그인 강제, 각 페이지 서버 컴포넌트가
-프로필 온보딩/역할/verified 리다이렉트 처리.
+게이트: `proxy.ts`(Next 16 미들웨어)가 세션 갱신+로그인 강제(`/login` `/terms` `/privacy`는
+공개), 각 페이지 서버 컴포넌트가 프로필 온보딩/역할/verified 리다이렉트 처리.
 
 ## 주요 파일
 
@@ -27,7 +28,7 @@ components/
   worker-app.tsx   워커 전체: 데이터+realtime, 상태 스트립, 리스트/지도,
                    GigDetailSheet·PinSheet·DisputeSheet 내장
   business-app.tsx 사장님 전체: 사이드바+콘솔, PostGigSheet, 매칭확정/노쇼 confirm
-  sheets.tsx       공용 ChatSheet(realtime), RateSheet
+  sheets.tsx       공용 ChatSheet(realtime), RateSheet, CancelSheet(취소 사유 선택)
   map-view.tsx     Google Maps(@vis.gl) ↔ SVG 폴백, PricePin/YouDot
   ui.tsx           Sheet(반응형 오버레이), MonoBadge, MiniStepper, Chip, LiveDot…
   icons.tsx        디자인 SVG 패스 아이콘 세트
@@ -47,7 +48,9 @@ components/
 ## 데이터 패턴
 
 - 클라이언트 컴포넌트가 직접 select(+조인 `profiles!fk`) — RLS는 authenticated 전체 읽기
-- 쓰기는 전부 `supabase.rpc(...)`
+- 쓰기는 전부 `supabase.rpc(...)`. 취소: 워커 상태 스트립(MATCHED)·비즈니스 콘솔에
+  Cancel 링크 → `cancel_match`/`cancel_gig`
+- `loadAll()` 첫 줄에서 `expire_stale_gigs` 호출(만료 공고 스윕)
 - realtime: `postgres_changes` 구독 → 토스트 + `loadAll()` refetch (coarse)
 - 거리: 클라이언트 하버사인 계산·정렬
 

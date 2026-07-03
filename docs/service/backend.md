@@ -13,7 +13,8 @@ gigs            공고. type(Cleaning/Laundry/Delivery/Errands), pay, when_label
                 expires_at(+24h)
 applications    지원. unique(gig_id, worker_id). APPLIED/SELECTED/REJECTED/WITHDRAWN
 matches         매칭 = 거래 단위. MATCHED→IN_PROGRESS→COMPLETED | NO_SHOW/CANCELLED.
-                pin_issued_at(표시용), arrived_at, completed_at
+                pin_issued_at(표시용), arrived_at, completed_at,
+                cancelled_by/cancel_reason/cancelled_at(취소 기록)
 match_pins      PIN 비밀 저장소(bcrypt hash, attempts, locked_until).
                 anon/authenticated **grant 없음** — API로 절대 못 읽음
 billable_events 매칭 확정 시 ₱0 기록 (Phase 1.5 과금 대비)
@@ -41,6 +42,9 @@ invite_codes    사장님 초대코드 (RPC 전용)
 | `open_dispute(match, reason, detail)` | 참여자 | 티켓 생성, `D-10xx` 반환 |
 | `post_review(match, stars, tags, comment)` | 참여자(COMPLETED만) | 리뷰 + 평판 집계 |
 | `send_message(match, body)` | 참여자(활성 매칭만) | 채팅 |
+| `cancel_match(match, reason)` | 참여자(MATCHED만) | 시작 전 취소. 취소자 cancel_count++, 사유는 matches.cancel_reason+audit. 워커 취소→gig 재오픈(POSTED, 만료 시 EXPIRED) / 사장님 취소→gig CANCELLED |
+| `cancel_gig(gig, reason)` | 공고 주인(POSTED만) | 공고 철회(CANCELLED) + 지원 REJECTED. 매칭 전이라 평판 무penalty |
+| `expire_stale_gigs()` | 아무나(무해) | POSTED & expires_at 경과 → EXPIRED + audit. pg_cron 10분 주기 + 클라이언트 loadAll 시 호출 |
 
 `verify_pin` 반환: `{ok:true}` | `{ok:false, error:"wrong_pin", attempts_left}` |
 `{error:"locked", locked_for}` | `{error:"no_active_pin"}`
@@ -90,3 +94,5 @@ psql로 pooler URL에 접속하는 방법이 검증됨).
 2. `20260702010000_grants` — authenticated GRANT (없으면 PostgREST 404/permission denied)
 3. `20260702020000_pin_search_path` — pgcrypto가 extensions 스키마라 PIN 함수 search_path 수정
 4. `20260702030000_simplify_rls` — RLS 단순화 + match_pins 분리 + PIN RPC 재작성
+5. `20260703000000_cancel_and_expiry` — cancel_match/cancel_gig RPC, matches 취소 컬럼,
+   expire_stale_gigs + pg_cron 스케줄(가능한 환경에서만; 실패 시 notice 후 통과)
