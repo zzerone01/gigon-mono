@@ -1,0 +1,13 @@
+# deps / build
+node_modules
+.next
+out
+
+# env
+.env
+.env*.local
+
+# misc
+*.tsbuildinfo
+next-env.d.ts
+.turbo

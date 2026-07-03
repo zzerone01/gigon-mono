@@ -1,0 +1,165 @@
+@import "tailwindcss";
+/* GigOn design tokens — single-sourced from the shared @repo/ui package. */
+@import "@repo/ui/theme.css";
+@source "../../../packages/ui/src/**/*.{ts,tsx}";
+
+/* App-design-only colors (GigOn Web Mobile.dc.html) on top of the shared DS. */
+@theme {
+  --color-ink-muted: #8a93a3;
+  --color-ink-body: #3d4757;
+  --color-line-soft: #eef1f6;
+  --color-line-dashed: #c9d2e0;
+  --color-red: #d92d20;
+  --color-red-bg: #fdf3f2;
+  --color-red-border: #f3c6c1;
+  --color-success-bg: #f0faf4;
+  --color-success-border: #bfe6d0;
+  --color-amber-bg: #fef8ec;
+  --color-navy-muted: #bcd0f2;
+}
+
+html,
+body {
+  background: #f6f9fe;
+}
+
+/* Hide scrollbars app-wide (design parity with the prototype). */
+* {
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+
+/* Keyframes ported from GigOn Web Mobile.dc.html */
+@keyframes gigToast {
+  from {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes gigSheet {
+  from {
+    transform: translateY(64px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes gigDrawer {
+  from {
+    transform: translateX(-40px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes gigFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes gigPulse {
+  0% {
+    transform: scale(0.55);
+    opacity: 0.6;
+  }
+  70% {
+    transform: scale(2);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+@keyframes gigShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(4px);
+  }
+}
+@keyframes gigPop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes gigBob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@keyframes gigBlink {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@layer utilities {
+  .anim-toast {
+    animation: gigToast 0.3s ease both;
+  }
+  .anim-sheet {
+    animation: gigSheet 0.3s ease both;
+  }
+  .anim-drawer {
+    animation: gigDrawer 0.25s ease both;
+  }
+  .anim-fade {
+    animation: gigFade 0.25s ease both;
+  }
+  .anim-pulse-ring {
+    animation: gigPulse 2.2s ease-out infinite;
+  }
+  .anim-shake {
+    animation: gigShake 0.4s ease;
+  }
+  .anim-pop {
+    animation: gigPop 0.4s ease both;
+  }
+  .anim-bob {
+    animation: gigBob 5s ease-in-out infinite;
+  }
+  .anim-blink {
+    animation: gigBlink 1.6s ease infinite;
+  }
+}
