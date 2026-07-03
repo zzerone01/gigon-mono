@@ -1,8 +1,9 @@
 /**
  * Supabase-backed app store. Keeps the same surface the screens were built
  * against (wStatus/eStatus, applied, apply/arrive/…): DB rows are mapped to
- * the design's view models and every state transition calls the server-side
- * state machine RPCs (PRD §4.1).
+ * the design's view models and every state transition calls the GigOn write
+ * API (app.gigon.io/api — PRD §4.1 state machine). Reads and Realtime stay
+ * on supabase-js.
  */
 import * as Haptics from "expo-haptics";
 import { create } from "zustand";
@@ -18,6 +19,7 @@ import {
   type GigWithEmployer,
   type ProfileRow,
 } from "../data/mock";
+import { api } from "../lib/api";
 import { MACTAN_CENTER } from "../lib/geo";
 import { supabase } from "../lib/supabase";
 
@@ -465,28 +467,33 @@ export const useGigStore = create<GigState>((set, get) => ({
     const st = get();
     if (!st.onbName.trim()) return "Tell us your name.";
     if (st.onbRole === "employer") {
-      const { data: ok, error } = await supabase.rpc("redeem_invite", {
-        p_code: st.onbInvite,
-        p_business_name: st.onbBusiness || st.onbName,
-      });
-      if (error || !ok) return "That invite code isn't valid. Pilot businesses are invite-only.";
+      const redeemed = await api
+        .post<{ ok: boolean }>("/api/invites/redeem", {
+          code: st.onbInvite,
+          businessName: st.onbBusiness || st.onbName,
+        })
+        .catch(() => ({ ok: false }));
+      if (!redeemed.ok) return "That invite code isn't valid. Pilot businesses are invite-only.";
     }
     const c = coords ?? MACTAN_CENTER;
-    const { error } = await supabase.rpc("complete_onboarding", {
-      p_name: st.onbName,
-      p_role: st.onbRole,
-      p_area: "Mactan",
-      p_lat: c.lat,
-      p_lng: c.lng,
-    });
-    if (error) return error.message;
+    try {
+      await api.post("/api/onboarding", {
+        name: st.onbName,
+        role: st.onbRole,
+        area: "Mactan",
+        lat: c.lat,
+        lng: c.lng,
+      });
+    } catch (error) {
+      return (error as Error).message;
+    }
     await get().boot();
     return null;
   },
 
   switchRole: async () => {
     const next: Role = get().role === "worker" ? "employer" : "worker";
-    await supabase.rpc("set_active_role", { p_role: next });
+    await api.post("/api/profile/role", { role: next }).catch(() => {});
     set({ role: next, ...initialFlow });
     await get().boot();
     return next;
@@ -624,9 +631,10 @@ export const useGigStore = create<GigState>((set, get) => ({
   },
 
   apply: async (gigId) => {
-    const { error } = await supabase.rpc("apply_to_gig", { p_gig: gigId });
-    if (error) {
-      get().showToast("Couldn't apply", error.message);
+    try {
+      await api.post(`/api/gigs/${gigId}/apply`);
+    } catch (error) {
+      get().showToast("Couldn't apply", (error as Error).message);
       return;
     }
     const g = gigById(gigId);
@@ -636,9 +644,10 @@ export const useGigStore = create<GigState>((set, get) => ({
 
   arrive: async () => {
     if (!wMatchId) return;
-    const { error } = await supabase.rpc("mark_arrived", { p_match: wMatchId });
-    if (error) {
-      get().showToast("Couldn't log arrival", error.message);
+    try {
+      await api.post(`/api/matches/${wMatchId}/arrive`);
+    } catch (error) {
+      get().showToast("Couldn't log arrival", (error as Error).message);
       return;
     }
     get().showToast("Arrival logged · IN_PROGRESS", "Recorded in the append-only audit log");
@@ -652,20 +661,15 @@ export const useGigStore = create<GigState>((set, get) => ({
     set({ pin: p, pinErr: "" });
     if (p.length === 4 && wMatchId) {
       pinBusy = true;
-      supabase
-        .rpc("verify_pin", { p_match: wMatchId, p_pin: p })
-        .then(async ({ data, error }) => {
+      api
+        .post<{
+          ok: boolean;
+          error?: string;
+          attempts_left?: number;
+          locked_for?: number;
+        }>(`/api/matches/${wMatchId}/pin/verify`, { pin: p })
+        .then(async (res) => {
           pinBusy = false;
-          if (error) {
-            set({ pin: "", pinErr: error.message });
-            return;
-          }
-          const res = data as {
-            ok: boolean;
-            error?: string;
-            attempts_left?: number;
-            locked_for?: number;
-          };
           if (res.ok) {
             notify();
             set({ pin: "", wStatus: "COMPLETED" });
@@ -692,6 +696,10 @@ export const useGigStore = create<GigState>((set, get) => ({
           } else {
             set({ pin: "", pinErr: `PIN doesn't match — ${res.attempts_left ?? 0} attempts left` });
           }
+        })
+        .catch((error: Error) => {
+          pinBusy = false;
+          set({ pin: "", pinErr: error.message });
         });
     }
   },
@@ -707,14 +715,14 @@ export const useGigStore = create<GigState>((set, get) => ({
   submitRate: async () => {
     const st = get();
     if (st.stars === 0 || !wMatchId) return;
-    const { error } = await supabase.rpc("post_review", {
-      p_match: wMatchId,
-      p_stars: st.stars,
-      p_tags: Object.keys(st.rtags).filter((k) => st.rtags[k]),
-      p_comment: st.comment,
-    });
-    if (error) {
-      get().showToast("Couldn't post review", error.message);
+    try {
+      await api.post(`/api/matches/${wMatchId}/review`, {
+        stars: st.stars,
+        tags: Object.keys(st.rtags).filter((k) => st.rtags[k]),
+        comment: st.comment,
+      });
+    } catch (error) {
+      get().showToast("Couldn't post review", (error as Error).message);
       return;
     }
     set({ wStatus: "RATED" });
@@ -728,14 +736,17 @@ export const useGigStore = create<GigState>((set, get) => ({
   fileDispute: async () => {
     const st = get();
     if (st.dReason < 0 || !wMatchId) return;
-    const { data, error } = await supabase.rpc("open_dispute", {
-      p_match: wMatchId,
-      p_reason: ["PIN doesn't match what happened", "Pay was different than agreed", "Work quality / other"][st.dReason]!,
-      p_detail: st.dText,
-    });
-    if (error || !data) return;
-    set({ dFiled: true, sheet: null, disputeTicket: String(data) });
-    get().showToast(`Dispute #${data} opened · DISPUTED`, "The GigOn team reviews within 24 h");
+    let ticket: string;
+    try {
+      ({ ticket } = await api.post<{ ticket: string }>(`/api/matches/${wMatchId}/dispute`, {
+        reason: ["PIN doesn't match what happened", "Pay was different than agreed", "Work quality / other"][st.dReason]!,
+        detail: st.dText,
+      }));
+    } catch {
+      return;
+    }
+    set({ dFiled: true, sheet: null, disputeTicket: ticket });
+    get().showToast(`Dispute #${ticket} opened · DISPUTED`, "The GigOn team reviews within 24 h");
   },
 
   setCReason: (i) => set({ cReason: i }),
@@ -746,15 +757,16 @@ export const useGigStore = create<GigState>((set, get) => ({
     const reasons = isWorker ? WORKER_CANCEL_REASONS : EMPLOYER_CANCEL_REASONS;
     set({ sheet: null });
     if (!matchId || st.cReason < 0) return;
-    const { error } = await supabase.rpc("cancel_match", {
-      p_match: matchId,
-      p_reason: reasons[st.cReason] ?? "Other",
-    });
-    set({ cReason: -1 });
-    if (error) {
-      get().showToast("Couldn't cancel", error.message);
+    try {
+      await api.post(`/api/matches/${matchId}/cancel`, {
+        reason: reasons[st.cReason] ?? "Other",
+      });
+    } catch (error) {
+      set({ cReason: -1 });
+      get().showToast("Couldn't cancel", (error as Error).message);
       return;
     }
+    set({ cReason: -1 });
     if (isWorker) {
       get().showToast("Gig cancelled", "Recorded on your profile — the posting reopened for others");
       await get().loadWorker();
@@ -768,15 +780,16 @@ export const useGigStore = create<GigState>((set, get) => ({
     const st = get();
     set({ sheet: null });
     if (!eGigId) return;
-    const { error } = await supabase.rpc("cancel_gig", {
-      p_gig: eGigId,
-      p_reason: EMPLOYER_CANCEL_REASONS[st.cReason] ?? "Other",
-    });
-    set({ cReason: -1 });
-    if (error) {
-      get().showToast("Couldn't cancel the posting", error.message);
+    try {
+      await api.post(`/api/gigs/${eGigId}/cancel`, {
+        reason: EMPLOYER_CANCEL_REASONS[st.cReason] ?? "Other",
+      });
+    } catch (error) {
+      set({ cReason: -1 });
+      get().showToast("Couldn't cancel the posting", (error as Error).message);
       return;
     }
+    set({ cReason: -1 });
     get().showToast("Posting cancelled", "Applicants were released — post again anytime");
     await get().loadEmployer();
   },
@@ -786,7 +799,7 @@ export const useGigStore = create<GigState>((set, get) => ({
     const t = text.trim();
     const matchId = get().role === "worker" ? wMatchId : eMatchId;
     if (!t || !matchId) return;
-    await supabase.rpc("send_message", { p_match: matchId, p_body: t });
+    await api.post(`/api/matches/${matchId}/messages`, { body: t }).catch(() => {});
   },
 
   /* ----------------------------- employer data ---------------------------- */
@@ -900,19 +913,22 @@ export const useGigStore = create<GigState>((set, get) => ({
     const p = st.profile;
     const payNum = parseInt(st.pfPay, 10);
     if (!st.pfTitle.trim() || !payNum) return "Add a title and pay amount.";
-    const { error } = await supabase.rpc("post_gig", {
-      p_title: st.pfTitle.trim(),
-      p_type: st.pfType as never,
-      p_description: st.pfDesc,
-      p_pay: payNum,
-      p_duration: st.pfDur,
-      p_when_label: `${st.pfWhen} · ${st.pfTime}`,
-      p_area: p?.area ?? "Mactan",
-      p_lat: p?.lat ?? MACTAN_CENTER.lat,
-      p_lng: p?.lng ?? MACTAN_CENTER.lng,
-      p_slots: st.pfSlots,
-    });
-    if (error) return error.message;
+    try {
+      await api.post("/api/gigs", {
+        title: st.pfTitle.trim(),
+        type: st.pfType,
+        description: st.pfDesc,
+        pay: payNum,
+        duration: st.pfDur,
+        whenLabel: `${st.pfWhen} · ${st.pfTime}`,
+        area: p?.area ?? "Mactan",
+        lat: p?.lat ?? MACTAN_CENTER.lat,
+        lng: p?.lng ?? MACTAN_CENTER.lng,
+        slots: st.pfSlots,
+      });
+    } catch (error) {
+      return (error as Error).message;
+    }
     get().showToast("Gig posted — free", "Live now · visible to workers within 3 km");
     await get().loadEmployer();
     return null;
@@ -923,9 +939,10 @@ export const useGigStore = create<GigState>((set, get) => ({
     const appId = workerId ? applicationIdByWorker[workerId] : null;
     set({ sheet: null });
     if (!appId) return;
-    const { error } = await supabase.rpc("select_applicant", { p_application: appId });
-    if (error) {
-      get().showToast("Couldn't match", error.message);
+    try {
+      await api.post(`/api/applications/${appId}/select`);
+    } catch (error) {
+      get().showToast("Couldn't match", (error as Error).message);
       return;
     }
     notify();
@@ -935,14 +952,16 @@ export const useGigStore = create<GigState>((set, get) => ({
 
   issuePin: async () => {
     if (!eMatchId) return;
-    const { data, error } = await supabase.rpc("issue_pin", { p_match: eMatchId });
-    if (error) {
-      get().showToast("Couldn't issue PIN", error.message);
+    let pin: string;
+    try {
+      ({ pin } = await api.post<{ pin: string }>(`/api/matches/${eMatchId}/pin`));
+    } catch (error) {
+      get().showToast("Couldn't issue PIN", (error as Error).message);
       return;
     }
-    set({ pinIssued: true, pinDigits: data ?? null });
+    set({ pinIssued: true, pinDigits: pin });
     get().showToast(
-      `PIN issued · ${(data ?? "").split("").join(" ")}`,
+      `PIN issued · ${pin.split("").join(" ")}`,
       "One-time · valid 24 h · tell it to your worker",
     );
   },
@@ -950,9 +969,10 @@ export const useGigStore = create<GigState>((set, get) => ({
   reportNoShow: async () => {
     set({ sheet: null });
     if (!eMatchId) return;
-    const { error } = await supabase.rpc("report_no_show", { p_match: eMatchId });
-    if (error) {
-      get().showToast("Couldn't record no-show", error.message);
+    try {
+      await api.post(`/api/matches/${eMatchId}/no-show`);
+    } catch (error) {
+      get().showToast("Couldn't record no-show", (error as Error).message);
       return;
     }
     set({ pinDigits: null, pinIssued: false });
@@ -966,14 +986,14 @@ export const useGigStore = create<GigState>((set, get) => ({
   submitERate: async () => {
     const st = get();
     if (st.eStars === 0 || !eMatchId) return;
-    const { error } = await supabase.rpc("post_review", {
-      p_match: eMatchId,
-      p_stars: st.eStars,
-      p_tags: Object.keys(st.etags).filter((k) => st.etags[k]),
-      p_comment: st.eComment,
-    });
-    if (error) {
-      get().showToast("Couldn't post review", error.message);
+    try {
+      await api.post(`/api/matches/${eMatchId}/review`, {
+        stars: st.eStars,
+        tags: Object.keys(st.etags).filter((k) => st.etags[k]),
+        comment: st.eComment,
+      });
+    } catch (error) {
+      get().showToast("Couldn't post review", (error as Error).message);
       return;
     }
     set({ eStatus: "RATED" });
