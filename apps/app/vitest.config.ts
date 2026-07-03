@@ -9,6 +9,7 @@ export default defineConfig({
   test: {
     include: ["tests/**/*.test.ts"],
     env: {
+      PUSH_DISABLED: "1",
       DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
       NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
       NEXT_PUBLIC_SUPABASE_ANON_KEY:

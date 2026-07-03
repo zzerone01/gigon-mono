@@ -21,6 +21,7 @@ import {
 } from "../data/mock";
 import { api } from "../lib/api";
 import { MACTAN_CENTER } from "../lib/geo";
+import { registerPushToken, unregisterPushToken } from "../lib/notifications";
 import { supabase } from "../lib/supabase";
 
 export type Role = "worker" | "employer";
@@ -426,6 +427,7 @@ export const useGigStore = create<GigState>((set, get) => ({
     set({ booted: true, userId: session.user.id, profile: profile ?? null, role });
     if (profile?.onboarded) {
       setupFeedRealtime(get);
+      void registerPushToken(); // fire-and-forget; no-op in Expo Go
       if (role === "worker") await get().loadWorker();
       else await get().loadEmployer();
     }
@@ -500,6 +502,7 @@ export const useGigStore = create<GigState>((set, get) => ({
   },
 
   signOut: async () => {
+    await unregisterPushToken();
     await supabase.auth.signOut();
     if (feedChannel) supabase.removeChannel(feedChannel);
     if (chatChannel) supabase.removeChannel(chatChannel);

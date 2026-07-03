@@ -167,6 +167,14 @@ export const disputes = pgTable("disputes", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** Expo push tokens — API-only (no client grants), one row per device. */
+export const pushTokens = pgTable("push_tokens", {
+  token: text("token").primaryKey(),
+  userId: uuid("user_id").notNull(),
+  platform: text("platform").notNull().default("android"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const auditLog = pgTable("audit_log", {
   id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
   matchId: uuid("match_id"),

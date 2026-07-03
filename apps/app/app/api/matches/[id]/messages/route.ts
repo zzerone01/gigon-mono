@@ -5,8 +5,10 @@ import { sendMessageBody } from "@repo/api/schemas";
 
 import { requireUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
+import { defer } from "@/lib/server/defer";
 import { ApiError, ok, readJson, withErrors } from "@/lib/server/errors";
-import { matches, messages } from "@/lib/server/schema";
+import { sendPushTo } from "@/lib/server/push";
+import { matches, messages, profiles } from "@/lib/server/schema";
 
 const CHAT_OPEN_STATUSES = new Set(["MATCHED", "IN_PROGRESS", "COMPLETED"]);
 
@@ -15,7 +17,7 @@ export const POST = withErrors(async (req, ctx) => {
   const matchId = z.uuid().parse((await ctx.params).id);
   const body = sendMessageBody.parse(await readJson(req));
 
-  const id = await db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const [match] = await tx
       .select({
         workerId: matches.workerId,
@@ -38,8 +40,28 @@ export const POST = withErrors(async (req, ctx) => {
       .insert(messages)
       .values({ matchId, senderId: user.id, body: body.body })
       .returning({ id: messages.id });
-    return message!.id;
+
+    const [sender] = await tx
+      .select({ fullName: profiles.fullName, businessName: profiles.businessName })
+      .from(profiles)
+      .where(eq(profiles.id, user.id));
+    return {
+      id: message!.id,
+      recipientId: match.workerId === user.id ? match.employerId : match.workerId,
+      senderName:
+        (match.employerId === user.id ? sender?.businessName : null) ??
+        sender?.fullName ??
+        "New message",
+    };
   });
 
-  return ok({ id });
+  defer(() =>
+    sendPushTo([result.recipientId], {
+      title: result.senderName,
+      body: body.body.length > 120 ? `${body.body.slice(0, 119)}…` : body.body,
+      data: { type: "message", matchId },
+    }),
+  );
+
+  return ok({ id: result.id });
 });

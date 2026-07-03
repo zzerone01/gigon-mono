@@ -4,16 +4,22 @@ import { z } from "zod";
 import { audit } from "@/lib/server/audit";
 import { requireUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
+import { defer } from "@/lib/server/defer";
 import { ApiError, ok, withErrors } from "@/lib/server/errors";
-import { applications, billableEvents, gigs, matches } from "@/lib/server/schema";
+import { sendPushTo } from "@/lib/server/push";
+import { applications, billableEvents, gigs, matches, profiles } from "@/lib/server/schema";
 
 export const POST = withErrors(async (req, ctx) => {
   const user = await requireUser(req);
   const applicationId = z.uuid().parse((await ctx.params).id);
 
-  const matchId = await db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const [row] = await tx
-      .select({ application: applications, employerId: gigs.employerId })
+      .select({
+        application: applications,
+        employerId: gigs.employerId,
+        gigTitle: gigs.title,
+      })
       .from(applications)
       .innerJoin(gigs, eq(gigs.id, applications.gigId))
       .where(eq(applications.id, applicationId));
@@ -45,14 +51,32 @@ export const POST = withErrors(async (req, ctx) => {
 
     await tx.insert(billableEvents).values({ matchId: match!.id });
 
+    const [employer] = await tx
+      .select({ businessName: profiles.businessName, fullName: profiles.fullName })
+      .from(profiles)
+      .where(eq(profiles.id, user.id));
+
     await audit(tx, "match_confirmed", {
       gigId: row.application.gigId,
       matchId: match!.id,
       actorId: user.id,
       payload: { billable: true, amount: 0 },
     });
-    return match!.id;
+    return {
+      matchId: match!.id,
+      workerId: row.application.workerId,
+      gigTitle: row.gigTitle,
+      employerName: employer?.businessName ?? employer?.fullName ?? "The business",
+    };
   });
 
-  return ok({ matchId });
+  defer(() =>
+    sendPushTo([result.workerId], {
+      title: "You're matched! 🎉",
+      body: `${result.employerName} picked you for “${result.gigTitle}” — chat is open.`,
+      data: { type: "matched", matchId: result.matchId },
+    }),
+  );
+
+  return ok({ matchId: result.matchId });
 });

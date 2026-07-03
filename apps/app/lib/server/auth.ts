@@ -27,8 +27,12 @@ export async function requireUser(req: Request): Promise<{ id: string }> {
     if (error || !data.user) throw new ApiError(401, "unauthorized", "sign in required");
     return { id: data.user.id };
   }
-  const supabase = await supabaseServer();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) throw new ApiError(401, "unauthorized", "sign in required");
-  return { id: data.user.id };
+  try {
+    const supabase = await supabaseServer();
+    const { data } = await supabase.auth.getUser();
+    if (data.user) return { id: data.user.id };
+  } catch {
+    // no request scope / unreadable cookies — treat as unauthenticated
+  }
+  throw new ApiError(401, "unauthorized", "sign in required");
 }
