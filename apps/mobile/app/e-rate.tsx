@@ -14,8 +14,7 @@ export default function EmployerRateScreen() {
   const setEComment = useGigStore((s) => s.setEComment);
   const submitERate = useGigStore((s) => s.submitERate);
   const skipERate = useGigStore((s) => s.skipERate);
-  const pfPay = useGigStore((s) => s.pfPay);
-  const pfTitle = useGigStore((s) => s.pfTitle);
+  const posting = useGigStore((s) => s.posting);
   const a = useMatchedApplicant();
 
   const goHome = () => router.navigate("/(employer)/postings");
@@ -23,7 +22,7 @@ export default function EmployerRateScreen() {
   return (
     <RateView
       forName={a.name}
-      paySub={`₱${pfPay} · paid in cash · ${pfTitle}`}
+      paySub={`₱${posting?.pay ?? ""} · paid in cash · ${posting?.title ?? ""}`}
       note={"Your review appears on her profile —\nreliable workers rise, no-shows fade."}
       tags={EMPLOYER_RATE_TAGS}
       selectedTags={etags}

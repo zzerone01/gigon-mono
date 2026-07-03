@@ -2,8 +2,7 @@ import { useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { firstName, gigById } from "../data/mock";
-import { useGigStore, useMatchedApplicant } from "../store/gig-store";
+import { gigById, useGigStore, useMatchedApplicant } from "../store/gig-store";
 import { font, palette, radius } from "../theme";
 import { Icon } from "./icon";
 import { Avatar, Press } from "./ui";
@@ -19,8 +18,7 @@ export function ChatTab() {
   const wStatus = useGigStore((s) => s.wStatus);
   const eStatus = useGigStore((s) => s.eStatus);
   const wGig = useGigStore((s) => s.wGig);
-  const wChat = useGigStore((s) => s.wChat);
-  const eChat = useGigStore((s) => s.eChat);
+  const msgs = useGigStore((s) => s.chatMsgs);
   const unread = useGigStore((s) => s.unread);
   const a = useMatchedApplicant();
   const gig = gigById(wGig);
@@ -29,7 +27,6 @@ export function ChatTab() {
   const enabled = isWorker
     ? !!wStatus && wStatus !== "APPLIED"
     : !!eStatus && eStatus !== "POSTED";
-  const msgs = isWorker ? wChat : eChat;
   const last = msgs[msgs.length - 1];
 
   return (

@@ -26,7 +26,13 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "GigOn only uses your location to show gigs within 2–3 km. Your exact location is never shown to other users."
+        }
+      ]
     ]
   }
 }

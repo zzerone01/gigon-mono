@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { initials, ratingLabel } from "../data/mock";
 import { useGigStore } from "../store/gig-store";
 import { font, palette, radius } from "../theme";
 import { Icon } from "./icon";
@@ -21,18 +22,27 @@ export function ProfileTab() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const role = useGigStore((s) => s.role);
-  const setRole = useGigStore((s) => s.setRole);
-  const restart = useGigStore((s) => s.restart);
+  const profile = useGigStore((s) => s.profile);
+  const doSwitchRole = useGigStore((s) => s.switchRole);
+  const doSignOut = useGigStore((s) => s.signOut);
   const isWorker = role === "worker";
 
-  const switchRole = () => {
-    const next = isWorker ? "employer" : "worker";
-    setRole(next);
+  const displayName = isWorker
+    ? (profile?.full_name ?? "You")
+    : (profile?.business_name ?? profile?.full_name ?? "Your business");
+  const joined = profile
+    ? new Date(profile.created_at).toLocaleDateString("en-PH", { month: "short", year: "numeric" })
+    : "";
+  const rating = profile ? ratingLabel(profile) : "New";
+  const ratingStr = rating === "New" ? "New" : `${rating}★`;
+
+  const switchRole = async () => {
+    const next = await doSwitchRole();
     router.replace(next === "employer" ? "/(employer)/postings" : "/(worker)/explore");
   };
 
-  const signOut = () => {
-    restart();
+  const signOut = async () => {
+    await doSignOut();
     router.replace("/onboarding/phone");
   };
 
@@ -46,11 +56,11 @@ export function ProfileTab() {
         contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 12 }}
       >
         <View style={styles.profileCard}>
-          <Avatar initials={isWorker ? "MS" : "KL"} size={54} radiusOverride={14} />
+          <Avatar initials={initials(displayName)} size={54} radiusOverride={14} />
           <View style={{ gap: 3, flex: 1 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-              <Text style={styles.profileName}>{isWorker ? "Marites Santos" : "Kape Lokal"}</Text>
-              {!isWorker && (
+              <Text style={styles.profileName}>{displayName}</Text>
+              {!isWorker && profile?.employer_verified && (
                 <View style={styles.verifiedChip}>
                   <Icon name="shield" size={10} color={palette.success} strokeWidth={2.4} />
                   <Text style={styles.verifiedText}>Invite-verified</Text>
@@ -58,34 +68,30 @@ export function ProfileTab() {
               )}
             </View>
             <Text style={styles.profileSub}>
-              {isWorker
-                ? "Worker · Basak, Lapu-Lapu · joined Apr 2026"
-                : "Business · Pusok Rd · joined Mar 2026"}
+              {isWorker ? "Worker" : "Business"} · {profile?.area ?? "Mactan"} · joined {joined}
             </Text>
           </View>
         </View>
 
         <View style={styles.statsCard}>
-          {isWorker ? (
-            <>
-              <Stat value="4.8★" label="RATING" />
-              <Stat value="23" label="COMPLETED" />
-              <Stat value="0%" label="NO-SHOWS" color={palette.success} last />
-            </>
-          ) : (
-            <>
-              <Stat value="4.8★" label="RATING" />
-              <Stat value="26" label="GIGS POSTED" />
-              <Stat value="96%" label="PIN COMPLETION" color={palette.success} last />
-            </>
-          )}
+          <Stat value={ratingStr} label="RATING" />
+          <Stat
+            value={String(profile?.jobs_completed ?? 0)}
+            label={isWorker ? "COMPLETED" : "GIGS DONE"}
+          />
+          <Stat
+            value={String(profile?.no_show_count ?? 0)}
+            label="NO-SHOWS"
+            color={(profile?.no_show_count ?? 0) > 0 ? palette.red : palette.success}
+            last
+          />
         </View>
 
         {isWorker ? (
           <View style={styles.infoCard}>
             <SectionLabel>Work preferences</SectionLabel>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-              {["Cleaning", "Laundry", "Errands"].map((skill) => (
+              {(profile?.skills ?? []).map((skill) => (
                 <View key={skill} style={styles.skillChip}>
                   <Text style={styles.skillChipText}>{skill}</Text>
                 </View>
@@ -108,7 +114,7 @@ export function ProfileTab() {
             <SectionLabel>Business</SectionLabel>
             <View style={styles.infoRow}>
               <Icon name="mapPin" size={15} color={palette.slate} />
-              <Text style={styles.infoRowText}>Pusok Rd, Lapu-Lapu City · pilot zone 1</Text>
+              <Text style={styles.infoRowText}>{profile?.area ?? "Mactan"}, Lapu-Lapu City · pilot zone 1</Text>
             </View>
             <View style={styles.infoRow}>
               <Icon name="card" size={15} color={palette.slate} />

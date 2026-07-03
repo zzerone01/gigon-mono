@@ -18,6 +18,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { SheetHost } from "../src/components/sheets";
 import { ToastHost } from "../src/components/toast";
+import { useGigStore } from "../src/store/gig-store";
 import { palette } from "../src/theme";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -37,6 +38,10 @@ export default function RootLayout() {
     if (fontsLoaded) SplashScreen.hideAsync().catch(() => {});
   }, [fontsLoaded]);
 
+  useEffect(() => {
+    useGigStore.getState().boot();
+  }, []);
+
   if (!fontsLoaded) return null;
 
   return (
@@ -50,6 +55,7 @@ export default function RootLayout() {
       >
         <Stack.Screen name="index" />
         <Stack.Screen name="onboarding/phone" />
+        <Stack.Screen name="onboarding/otp" />
         <Stack.Screen name="onboarding/role" />
         <Stack.Screen name="onboarding/location" />
         <Stack.Screen name="(worker)" options={{ animation: "fade" }} />

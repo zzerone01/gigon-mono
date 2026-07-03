@@ -6,8 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LiveDot } from "../src/components/animated-bits";
 import { Icon } from "../src/components/icon";
 import { Avatar, Card, Press } from "../src/components/ui";
-import { applicantById } from "../src/data/mock";
-import { useGigStore } from "../src/store/gig-store";
+import { applicantById, useGigStore } from "../src/store/gig-store";
 import { font, palette, radius } from "../src/theme";
 
 function Stat({ value, label, color, last }: { value: string; label: string; color: string; last?: boolean }) {
@@ -25,10 +24,7 @@ export default function ApplicantsScreen() {
   const apps = useGigStore((s) => s.apps);
   const noShowDone = useGigStore((s) => s.noShowDone);
   const openSheet = useGigStore((s) => s.openSheet);
-  const pfTitle = useGigStore((s) => s.pfTitle);
-  const pfPay = useGigStore((s) => s.pfPay);
-  const pfWhen = useGigStore((s) => s.pfWhen);
-  const pfTime = useGigStore((s) => s.pfTime);
+  const posting = useGigStore((s) => s.posting);
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -39,7 +35,7 @@ export default function ApplicantsScreen() {
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Applicants</Text>
           <Text style={styles.headerSub} numberOfLines={1}>
-            {pfTitle} · ₱{pfPay} · {pfWhen} {pfTime}
+            {posting ? `${posting.title} · ${posting.meta}` : ""}
           </Text>
         </View>
       </View>
@@ -53,7 +49,8 @@ export default function ApplicantsScreen() {
             <Icon name="alertTriangle" size={15} color={palette.red} />
             <Text style={styles.noShowText}>
               <Text style={{ fontFamily: font.sansBold, color: palette.red }}>No-show recorded</Text>{" "}
-              on Analyn's profile — it shows on her future applications. Pick a replacement below.
+              on the worker's profile — it shows on their future applications. Pick a replacement
+              below.
             </Text>
           </View>
         )}
@@ -63,8 +60,7 @@ export default function ApplicantsScreen() {
             <LiveDot size={9} />
             <Text style={styles.waitingTitle}>Your gig is live</Text>
             <Text style={styles.waitingBody}>
-              Workers within 3 km can see it now — applicants appear here.{" "}
-              <Text style={{ color: palette.muted }}>(demo: ~3 s)</Text>
+              Workers within 3 km can see it now — applicants appear here in real time.
             </Text>
           </View>
         )}

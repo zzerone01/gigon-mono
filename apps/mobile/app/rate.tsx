@@ -1,8 +1,8 @@
 import { useRouter } from "expo-router";
 
 import { RateView } from "../src/components/rate-view";
-import { WORKER_RATE_TAGS, firstName, gigById } from "../src/data/mock";
-import { useGigStore } from "../src/store/gig-store";
+import { WORKER_RATE_TAGS, firstName } from "../src/data/mock";
+import { gigById, useGigStore } from "../src/store/gig-store";
 
 export default function WorkerRateScreen() {
   const router = useRouter();

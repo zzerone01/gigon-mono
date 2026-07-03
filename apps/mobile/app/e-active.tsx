@@ -15,8 +15,6 @@ import {
 } from "../src/store/gig-store";
 import { font, palette, radius } from "../src/theme";
 
-const PIN_DIGITS = ["4", "8", "2", "1"];
-
 export default function EmployerActiveScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -24,10 +22,8 @@ export default function EmployerActiveScreen() {
   const pinIssued = useGigStore((s) => s.pinIssued);
   const issuePin = useGigStore((s) => s.issuePin);
   const openSheet = useGigStore((s) => s.openSheet);
-  const pfTitle = useGigStore((s) => s.pfTitle);
-  const pfPay = useGigStore((s) => s.pfPay);
-  const pfWhen = useGigStore((s) => s.pfWhen);
-  const pfTime = useGigStore((s) => s.pfTime);
+  const posting = useGigStore((s) => s.posting);
+  const pinDigits = useGigStore((s) => s.pinDigits);
   const a = useMatchedApplicant();
 
   const status = eStatus ?? "POSTED";
@@ -36,9 +32,9 @@ export default function EmployerActiveScreen() {
   const isDone = status === "COMPLETED" || status === "RATED";
   const statusLine =
     status === "MATCHED"
-      ? `${first} accepted and is on her way — ETA ~10 min (demo: auto-arrives).`
+      ? `${first} is matched — coordinate in chat. They'll tap “I've arrived” on site.`
       : status === "IN_PROGRESS"
-        ? "On site — she tapped “I've arrived”. Issue the PIN once the job is done and paid."
+        ? "On site — they tapped “I've arrived”. Issue the PIN once the job is done and paid."
         : "PIN confirmed by both sides. Gig closed and logged.";
 
   return (
@@ -63,9 +59,9 @@ export default function EmployerActiveScreen() {
         </View>
 
         <View style={styles.titleCard}>
-          <Text style={styles.titleText}>{pfTitle}</Text>
+          <Text style={styles.titleText}>{posting?.title}</Text>
           <Text style={styles.titleMeta}>
-            ₱{pfPay} · {pfWhen} {pfTime}
+            {posting?.meta}
           </Text>
         </View>
 
@@ -85,7 +81,7 @@ export default function EmployerActiveScreen() {
 
         <View style={styles.eventLine}>
           <Text style={styles.eventLineText}>
-            event: match_confirmed → billable_event #BE-1042 · charge ₱0 (pilot)
+            event: match_confirmed → billable_event · charge ₱0 (pilot)
           </Text>
         </View>
 
@@ -102,7 +98,7 @@ export default function EmployerActiveScreen() {
               <Text style={{ fontFamily: font.sansSemiBold, color: palette.ink }}>
                 Job done and paid in cash?
               </Text>{" "}
-              Issue the one-time PIN and tell it to {first} — she enters it to close the gig.
+              Issue the one-time PIN and tell it to {first} — they enter it to close the gig.
             </Text>
             <Press style={styles.issueCta} onPress={issuePin}>
               <Text style={styles.issueCtaLabel}>Issue completion PIN</Text>
@@ -113,17 +109,28 @@ export default function EmployerActiveScreen() {
         {status === "IN_PROGRESS" && pinIssued && (
           <View style={styles.pinCard}>
             <Text style={styles.pinCardLabel}>Tell {first} this PIN</Text>
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              {PIN_DIGITS.map((d, i) => (
-                <View key={i} style={styles.pinDigit}>
-                  <Text style={styles.pinDigitText}>{d}</Text>
-                </View>
-              ))}
-            </View>
+            {pinDigits ? (
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {pinDigits.split("").map((d, i) => (
+                  <View key={i} style={styles.pinDigit}>
+                    <Text style={styles.pinDigitText}>{d}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Press
+                style={{ height: 40, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, borderColor: palette.amber, backgroundColor: palette.white, alignItems: "center", justifyContent: "center" }}
+                onPress={issuePin}
+              >
+                <Text style={{ fontFamily: font.sansSemiBold, fontSize: 12, color: palette.amberDark }}>
+                  Show PIN again (re-issue)
+                </Text>
+              </Press>
+            )}
             <Text style={styles.pinCardNote}>
               One-time · valid 24 h · 3 wrong tries locks it for 60 s{"\n"}
               <Text style={{ color: palette.amberDark, fontFamily: font.sansSemiBold }}>
-                Waiting for {first} to enter it… (demo: ~6 s)
+                Waiting for {first} to enter it…
               </Text>
             </Text>
           </View>

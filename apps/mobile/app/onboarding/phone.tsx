@@ -5,12 +5,29 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Icon } from "../../src/components/icon";
 import { Press } from "../../src/components/ui";
+import { useGigStore } from "../../src/store/gig-store";
 import { font, palette, radius } from "../../src/theme";
 
 export default function PhoneScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [phone, setPhone] = useState("917 244 1188");
+  const sendOtp = useGigStore((s) => s.sendOtp);
+  const [phone, setPhone] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const send = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    const err = await sendOtp(phone);
+    setBusy(false);
+    if (err) {
+      setError(err);
+      return;
+    }
+    router.push("/onboarding/otp");
+  };
 
   return (
     <KeyboardAvoidingView
@@ -38,13 +55,16 @@ export default function PhoneScreen() {
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
+              placeholder="917 123 4001"
+              placeholderTextColor={palette.muted}
               style={styles.phoneInput}
             />
           </View>
           <Text style={styles.helper}>We'll text a 6-digit code. Standard SMS rates apply.</Text>
+          {!!error && <Text style={styles.error}>{error}</Text>}
         </View>
-        <Press style={styles.cta} onPress={() => router.push("/onboarding/role")}>
-          <Text style={styles.ctaLabel}>Send code</Text>
+        <Press style={[styles.cta, busy && { opacity: 0.6 }]} onPress={send} disabled={busy}>
+          <Text style={styles.ctaLabel}>{busy ? "Sending…" : "Send code"}</Text>
           <Icon name="arrowRight" size={16} color={palette.ink} strokeWidth={2.2} />
         </Press>
       </View>
@@ -138,6 +158,11 @@ const styles = StyleSheet.create({
     fontFamily: font.sans,
     fontSize: 11.5,
     color: palette.muted,
+  },
+  error: {
+    fontFamily: font.sansSemiBold,
+    fontSize: 12.5,
+    color: palette.red,
   },
   cta: {
     height: 50,

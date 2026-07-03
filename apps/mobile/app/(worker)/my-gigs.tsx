@@ -5,8 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GIG_TYPE_ICON, Icon, IconName } from "../../src/components/icon";
 import { Stepper } from "../../src/components/stepper";
 import { Card, MonoBadge, Press, SectionLabel } from "../../src/components/ui";
-import { gigById } from "../../src/data/mock";
-import { WORKER_BADGES, useGigStore, workerStatusIndex } from "../../src/store/gig-store";
+import { WORKER_BADGES, gigById, useGigStore, workerStatusIndex } from "../../src/store/gig-store";
 import { font, palette, radius } from "../../src/theme";
 
 function HistoryRow({
@@ -35,7 +34,7 @@ function HistoryRow({
         <Text style={styles.histPay}>{pay}</Text>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
           <Icon name="check" size={10} color={palette.success} strokeWidth={3} />
-          <Text style={styles.histPin}>PIN · {stars}★</Text>
+          <Text style={styles.histPin}>PIN{stars ? ` · ${stars}★` : " verified"}</Text>
         </View>
       </View>
     </View>
@@ -47,6 +46,7 @@ export default function MyGigsScreen() {
   const insets = useSafeAreaInsets();
   const wStatus = useGigStore((s) => s.wStatus);
   const wGig = useGigStore((s) => s.wGig);
+  const hist = useGigStore((s) => s.hist);
   const gig = gigById(wGig);
 
   const hasCurrent = !!wStatus && wStatus !== "RATED";
@@ -54,7 +54,7 @@ export default function MyGigsScreen() {
   const stepIndex = wStatus ? workerStatusIndex[wStatus] : 0;
   const sub =
     wStatus === "APPLIED"
-      ? "Business replies in ~3 s (demo)"
+      ? "The business is reviewing applicants"
       : wStatus === "MATCHED"
         ? "Head over before 2:00 PM"
         : wStatus === "IN_PROGRESS"
@@ -122,30 +122,19 @@ export default function MyGigsScreen() {
           </View>
         ) : null}
 
-        <SectionLabel style={{ paddingHorizontal: 4, paddingTop: 8 }}>History</SectionLabel>
-        {wStatus === "RATED" && (
-          <HistoryRow
-            icon={GIG_TYPE_ICON[gig.type]!}
-            title={gig.t}
-            meta={`${gig.biz} · today`}
-            pay={`₱${gig.pay}`}
-            stars="5.0"
-          />
+        {hist.length > 0 && (
+          <SectionLabel style={{ paddingHorizontal: 4, paddingTop: 8 }}>History</SectionLabel>
         )}
-        <HistoryRow
-          icon="laundry"
-          title="Laundry helper"
-          meta="Wash Day Laundromat · Jun 28"
-          pay="₱250"
-          stars="5.0"
-        />
-        <HistoryRow
-          icon="errands"
-          title="Grocery run"
-          meta="Nanay Cora's Eatery · Jun 21"
-          pay="₱200"
-          stars="4.8"
-        />
+        {hist.map((h) => (
+          <HistoryRow
+            key={h.id}
+            icon={GIG_TYPE_ICON[h.type] ?? "briefcase"}
+            title={h.t}
+            meta={h.meta}
+            pay={`₱${h.pay}`}
+            stars=""
+          />
+        ))}
       </ScrollView>
     </View>
   );

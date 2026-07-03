@@ -1,13 +1,15 @@
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { FlatList, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useMemo, useState } from "react";
+import { FlatList, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Bob, LiveDot } from "../../src/components/animated-bits";
+import { LiveDot } from "../../src/components/animated-bits";
 import { GIG_TYPE_ICON, Icon } from "../../src/components/icon";
-import { ExploreMapArt, PricePin, YouMarker } from "../../src/components/maps";
+import { PricePin } from "../../src/components/maps";
 import { Card, Chip, Press } from "../../src/components/ui";
-import { FILTERS, GIGS, Gig } from "../../src/data/mock";
+import { FILTERS, Gig } from "../../src/data/mock";
+import { MACTAN_CENTER } from "../../src/lib/geo";
 import { useGigStore } from "../../src/store/gig-store";
 import { font, palette, radius } from "../../src/theme";
 
@@ -45,10 +47,19 @@ export default function ExploreScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const applied = useGigStore((s) => s.applied);
+  const feed = useGigStore((s) => s.feed);
+  const profile = useGigStore((s) => s.profile);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
   const [view, setView] = useState<"list" | "map">("list");
 
-  const gigs = GIGS.filter((g) => filter === "All" || g.type === filter);
+  const gigs = useMemo(
+    () => feed.filter((g) => filter === "All" || g.type === filter),
+    [feed, filter],
+  );
+  const you = {
+    latitude: profile?.lat ?? MACTAN_CENTER.lat,
+    longitude: profile?.lng ?? MACTAN_CENTER.lng,
+  };
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -63,7 +74,7 @@ export default function ExploreScreen() {
         <View style={styles.headerRight}>
           <View style={styles.zoneChip}>
             <Icon name="mapPin" size={13} color={palette.royal} strokeWidth={2.2} />
-            <Text style={styles.zoneChipText}>Mactan · Zone 1</Text>
+            <Text style={styles.zoneChipText}>{profile?.area ?? "Mactan"} · Zone 1</Text>
           </View>
           <Press style={styles.bellBtn} haptic={false}>
             <Icon name="bell" size={20} color={palette.slate} />
@@ -117,22 +128,37 @@ export default function ExploreScreen() {
           />
         ) : (
           <View style={StyleSheet.absoluteFill}>
-            <ExploreMapArt />
-            <View style={styles.youAnchor}>
-              <YouMarker />
-            </View>
-            {gigs.map((g) => (
-              <View key={g.id} style={[styles.pinAnchor, { left: `${g.mx}%`, top: `${g.my}%` }]}>
-                <Bob delay={g.bob * 1000} style={styles.pinInner}>
-                  <Press
-                    haptic={false}
-                    onPress={() => router.push({ pathname: "/gig/[id]", params: { id: g.id } })}
-                  >
-                    <PricePin label={`₱${g.pay}`} bg={applied[g.id] ? palette.success : palette.royal} />
-                  </Press>
-                </Bob>
-              </View>
-            ))}
+            <MapView
+              provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
+              style={StyleSheet.absoluteFill}
+              initialRegion={{
+                latitude: MACTAN_CENTER.lat,
+                longitude: MACTAN_CENTER.lng,
+                latitudeDelta: 0.045,
+                longitudeDelta: 0.045,
+              }}
+              showsCompass={false}
+              toolbarEnabled={false}
+            >
+              <Marker coordinate={you} anchor={{ x: 0.5, y: 0.5 }}>
+                <View style={styles.youWrap}>
+                  <View style={styles.youDot} />
+                  <View style={styles.youTag}>
+                    <Text style={styles.youTagText}>YOU</Text>
+                  </View>
+                </View>
+              </Marker>
+              {gigs.map((g) => (
+                <Marker
+                  key={g.id}
+                  coordinate={{ latitude: g.lat, longitude: g.lng }}
+                  anchor={{ x: 0.5, y: 1 }}
+                  onPress={() => router.push({ pathname: "/gig/[id]", params: { id: g.id } })}
+                >
+                  <PricePin label={`₱${g.pay}`} bg={applied[g.id] ? palette.success : palette.royal} />
+                </Marker>
+              ))}
+            </MapView>
             <View style={[styles.mapChip, { left: 12, top: 12 }]}>
               <LiveDot />
               <Text style={styles.mapChipText}>{gigs.length} gigs open now</Text>
@@ -144,10 +170,7 @@ export default function ExploreScreen() {
         )}
 
         {/* list/map toggle pill */}
-        <Press
-          style={styles.pill}
-          onPress={() => setView(view === "list" ? "map" : "list")}
-        >
+        <Press style={styles.pill} onPress={() => setView(view === "list" ? "map" : "list")}>
           <Icon name={view === "list" ? "map" : "list"} size={15} color={palette.white} />
           <Text style={styles.pillLabel}>{view === "list" ? "Map" : "List"}</Text>
         </Press>
@@ -328,28 +351,34 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: palette.muted,
   },
-  youAnchor: {
-    position: "absolute",
-    left: "48%",
-    top: "55%",
+  youWrap: {
+    alignItems: "center",
+    gap: 3,
+  },
+  youDot: {
     width: 17,
     height: 17,
-    marginLeft: -8.5,
-    marginTop: -8.5,
-    zIndex: 2,
+    borderRadius: 999,
+    backgroundColor: palette.amber,
+    borderWidth: 3,
+    borderColor: palette.white,
+    shadowColor: palette.ink,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.35,
+    shadowRadius: 5,
+    elevation: 3,
   },
-  pinAnchor: {
-    position: "absolute",
-    width: 0,
-    height: 0,
-    zIndex: 3,
+  youTag: {
+    backgroundColor: palette.ink,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 999,
   },
-  pinInner: {
-    position: "absolute",
-    bottom: 0,
-    alignItems: "center",
-    width: 120,
-    marginLeft: -60,
+  youTagText: {
+    fontFamily: font.sansSemiBold,
+    fontSize: 9.5,
+    letterSpacing: 0.4,
+    color: palette.white,
   },
   mapChip: {
     position: "absolute",

@@ -16,6 +16,7 @@ export default function PostGigScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const s = useGigStore();
+  const bizLabel = `${s.profile?.business_name ?? "Your business"} · ${s.profile?.area ?? "Mactan"}`;
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -148,7 +149,7 @@ export default function PostGigScreen() {
               <View style={styles.mapPinPointer} />
             </View>
             <View style={[styles.mapChip, { left: 10 }]}>
-              <Text style={styles.mapChipText}>Kape Lokal · Pusok Rd</Text>
+              <Text style={styles.mapChipText}>{bizLabel}</Text>
             </View>
             <View style={[styles.mapChip, { right: 10 }]}>
               <Text style={styles.mapChipMuted}>Adjust</Text>
@@ -172,9 +173,9 @@ export default function PostGigScreen() {
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
         <Press
           style={styles.cta}
-          onPress={() => {
-            s.postGig();
-            router.back();
+          onPress={async () => {
+            const err = await s.postGig();
+            if (!err) router.back();
           }}
         >
           <Text style={styles.ctaLabel}>Post gig — free</Text>

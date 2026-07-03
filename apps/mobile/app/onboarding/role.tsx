@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { useState } from "react";
+import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -64,11 +65,29 @@ export default function RoleScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const onbRole = useGigStore((s) => s.onbRole);
+  const onbName = useGigStore((s) => s.onbName);
+  const onbBusiness = useGigStore((s) => s.onbBusiness);
+  const onbInvite = useGigStore((s) => s.onbInvite);
+  const setOnbFields = useGigStore((s) => s.setOnbFields);
+  const [error, setError] = useState("");
+
+  const next = () => {
+    if (!onbName.trim()) {
+      setError("Tell us your name.");
+      return;
+    }
+    if (onbRole === "employer" && !onbInvite.trim()) {
+      setError("Enter your pilot invite code.");
+      return;
+    }
+    setError("");
+    router.push("/onboarding/location");
+  };
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <ProgressBars filled={2} />
-      <View style={styles.main}>
+      <ScrollView style={styles.main} contentContainerStyle={{ gap: 14 }}>
         <View style={{ gap: 6, paddingHorizontal: 4 }}>
           <Text style={styles.heading}>How will you use GigOn?</Text>
           <Text style={styles.sub}>One account, one active role — switch any time in settings.</Text>
@@ -85,20 +104,50 @@ export default function RoleScreen() {
           title="I'm hiring for my business"
           body="Post 1–3 hour gigs and match in minutes. Invite code required during the pilot."
         />
+        <View style={{ gap: 6, paddingHorizontal: 4 }}>
+          <Text style={styles.inviteLabel}>Your name</Text>
+          <TextInput
+            value={onbName}
+            onChangeText={(v) => setOnbFields({ onbName: v })}
+            placeholder="Juan Dela Cruz"
+            placeholderTextColor={palette.muted}
+            style={styles.nameInput}
+          />
+        </View>
         {onbRole === "employer" && (
-          <Animated.View entering={FadeIn.duration(250)} style={{ gap: 6, paddingHorizontal: 4 }}>
-            <Text style={styles.inviteLabel}>Invite code</Text>
-            <TextInput
-              value="MACTAN-30"
-              editable={false}
-              style={styles.inviteInput}
-            />
-            <Text style={styles.inviteHelper}>Pilot merchants are invite-verified by the GigOn team.</Text>
+          <Animated.View entering={FadeIn.duration(250)} style={{ gap: 14 }}>
+            <View style={{ gap: 6, paddingHorizontal: 4 }}>
+              <Text style={styles.inviteLabel}>Business name</Text>
+              <TextInput
+                value={onbBusiness}
+                onChangeText={(v) => setOnbFields({ onbBusiness: v })}
+                placeholder="Kape Lokal"
+                placeholderTextColor={palette.muted}
+                style={styles.nameInput}
+              />
+            </View>
+            <View style={{ gap: 6, paddingHorizontal: 4 }}>
+              <Text style={styles.inviteLabel}>Invite code</Text>
+              <TextInput
+                value={onbInvite}
+                onChangeText={(v) => setOnbFields({ onbInvite: v.toUpperCase() })}
+                placeholder="MACTAN-30"
+                placeholderTextColor={palette.muted}
+                autoCapitalize="characters"
+                style={styles.inviteInput}
+              />
+              <Text style={styles.inviteHelper}>Pilot merchants are invite-verified by the GigOn team.</Text>
+            </View>
           </Animated.View>
         )}
-      </View>
+        {!!error && (
+          <Text style={{ fontFamily: font.sansSemiBold, fontSize: 12.5, color: palette.red, paddingHorizontal: 4 }}>
+            {error}
+          </Text>
+        )}
+      </ScrollView>
       <View style={{ paddingHorizontal: 24, paddingBottom: insets.bottom + 16, paddingTop: 16 }}>
-        <Press style={styles.cta} onPress={() => router.push("/onboarding/location")}>
+        <Press style={styles.cta} onPress={next}>
           <Text style={styles.ctaLabel}>Continue</Text>
         </Press>
       </View>
@@ -186,6 +235,16 @@ const styles = StyleSheet.create({
   inviteLabel: {
     fontFamily: font.sansSemiBold,
     fontSize: 12.5,
+    color: palette.ink,
+  },
+  nameInput: {
+    height: 44,
+    borderWidth: 1,
+    borderColor: palette.line,
+    borderRadius: radius.sm,
+    paddingHorizontal: 13,
+    fontFamily: font.sans,
+    fontSize: 14,
     color: palette.ink,
   },
   inviteInput: {

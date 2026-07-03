@@ -11,8 +11,8 @@ import {
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { DISPUTE_REASONS, applicantById } from "../data/mock";
-import { useGigStore } from "../store/gig-store";
+import { DISPUTE_REASONS } from "../data/mock";
+import { applicantById, useGigStore } from "../store/gig-store";
 import { font, palette, radius } from "../theme";
 import { Icon } from "./icon";
 import { Press } from "./ui";

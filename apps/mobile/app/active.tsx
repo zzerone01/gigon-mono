@@ -7,8 +7,8 @@ import { Pop } from "../src/components/animated-bits";
 import { GIG_TYPE_ICON, Icon } from "../src/components/icon";
 import { Stepper } from "../src/components/stepper";
 import { Avatar, MonoBadge, Press } from "../src/components/ui";
-import { firstName, gigById } from "../src/data/mock";
-import { WORKER_BADGES, useGigStore, workerStatusIndex } from "../src/store/gig-store";
+import { firstName } from "../src/data/mock";
+import { WORKER_BADGES, gigById, useGigStore, workerStatusIndex } from "../src/store/gig-store";
 import { font, palette, radius } from "../src/theme";
 
 export default function ActiveGigScreen() {

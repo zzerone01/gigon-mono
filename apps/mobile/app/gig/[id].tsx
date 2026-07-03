@@ -5,8 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GIG_TYPE_ICON, Icon } from "../../src/components/icon";
 import { DetailMapArt, PricePin } from "../../src/components/maps";
 import { Avatar, Press } from "../../src/components/ui";
-import { gigById } from "../../src/data/mock";
-import { useGigStore } from "../../src/store/gig-store";
+import { gigById, useGigStore } from "../../src/store/gig-store";
 import { font, palette, radius } from "../../src/theme";
 
 export default function GigDetailScreen() {

@@ -13,10 +13,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Icon } from "../src/components/icon";
 import { Avatar, MonoBadge, Press } from "../src/components/ui";
-import { firstName, gigById } from "../src/data/mock";
+import { firstName } from "../src/data/mock";
 import {
   EMPLOYER_BADGES,
   WORKER_BADGES,
+  gigById,
   useGigStore,
   useMatchedApplicant,
 } from "../src/store/gig-store";
@@ -32,15 +33,13 @@ export default function ChatRoomScreen() {
   const wStatus = useGigStore((s) => s.wStatus);
   const eStatus = useGigStore((s) => s.eStatus);
   const wGig = useGigStore((s) => s.wGig);
-  const wChat = useGigStore((s) => s.wChat);
-  const eChat = useGigStore((s) => s.eChat);
+  const msgs = useGigStore((s) => s.chatMsgs);
   const sendChat = useGigStore((s) => s.sendChat);
   const markChatRead = useGigStore((s) => s.markChatRead);
   const a = useMatchedApplicant();
   const gig = gigById(wGig);
 
   const isWorker = role === "worker";
-  const msgs = isWorker ? wChat : eChat;
   const name = isWorker ? gig.biz : a.name;
   const initials = isWorker ? gig.einit : a.init;
   const sub = isWorker

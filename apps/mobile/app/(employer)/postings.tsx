@@ -5,22 +5,19 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LiveDot } from "../../src/components/animated-bits";
 import { Icon } from "../../src/components/icon";
 import { Card, MonoBadge, Press, SectionLabel } from "../../src/components/ui";
-import { applicantById, firstName } from "../../src/data/mock";
-import { EMPLOYER_BADGES, useGigStore } from "../../src/store/gig-store";
+import { firstName, initials } from "../../src/data/mock";
+import { EMPLOYER_BADGES, applicantById, useGigStore } from "../../src/store/gig-store";
 import { font, palette, radius } from "../../src/theme";
 
 export default function PostingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const profile = useGigStore((s) => s.profile);
   const posted = useGigStore((s) => s.posted);
+  const posting = useGigStore((s) => s.posting);
   const eStatus = useGigStore((s) => s.eStatus);
   const apps = useGigStore((s) => s.apps);
   const matchedId = useGigStore((s) => s.matchedId);
-  const pfTitle = useGigStore((s) => s.pfTitle);
-  const pfPay = useGigStore((s) => s.pfPay);
-  const pfWhen = useGigStore((s) => s.pfWhen);
-  const pfTime = useGigStore((s) => s.pfTime);
-  const pfSlots = useGigStore((s) => s.pfSlots);
 
   const matched = applicantById(matchedId);
   const badge = eStatus ? EMPLOYER_BADGES[eStatus] : EMPLOYER_BADGES.POSTED;
@@ -55,7 +52,9 @@ export default function PostingsScreen() {
         </View>
         <View style={styles.zoneChip}>
           <Icon name="mapPin" size={13} color={palette.royal} strokeWidth={2.2} />
-          <Text style={styles.zoneChipText}>Kape Lokal · Pusok</Text>
+          <Text style={styles.zoneChipText}>
+            {profile?.business_name ?? "Your business"} · {profile?.area ?? "Mactan"}
+          </Text>
         </View>
       </View>
 
@@ -71,17 +70,17 @@ export default function PostingsScreen() {
           </Press>
         </View>
 
-        {posted ? (
+        {posted && posting ? (
           <Card style={{ borderWidth: 1.5, borderColor: palette.royal, overflow: "hidden" }}>
             <View style={styles.liveTop}>
               <MonoBadge label={badge.t} bg={badge.bg} color={badge.c} />
-              <Text style={styles.expires}>expires in 20 h</Text>
+              <Text style={styles.expires}>
+                {posting.status === "POSTED" ? `expires in ${posting.expiresIn} h` : ""}
+              </Text>
             </View>
             <View style={{ paddingHorizontal: 14, paddingTop: 11, paddingBottom: 12, gap: 3 }}>
-              <Text style={styles.liveTitle}>{pfTitle}</Text>
-              <Text style={styles.liveMeta}>
-                ₱{pfPay} · {pfWhen} {pfTime} · {pfSlots} worker
-              </Text>
+              <Text style={styles.liveTitle}>{posting.title}</Text>
+              <Text style={styles.liveMeta}>{posting.meta}</Text>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginTop: 6 }}>
                 {eStatus === "POSTED" && <LiveDot />}
                 <Text style={styles.appsLine}>{appsLine}</Text>
@@ -117,21 +116,6 @@ export default function PostingsScreen() {
             </Press>
           </View>
         )}
-
-        <SectionLabel style={{ paddingHorizontal: 4, paddingTop: 8 }}>Past</SectionLabel>
-        <View style={styles.pastRow}>
-          <View style={styles.pastIcon}>
-            <Icon name="sparkle" size={17} color={palette.slate} strokeWidth={1.8} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.pastTitle}>Weekend deep clean</Text>
-            <Text style={styles.pastMeta}>Jun 21 · ₱600 · Analyn D.</Text>
-          </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
-            <Icon name="check" size={10} color={palette.success} strokeWidth={3} />
-            <Text style={styles.pastPin}>PIN · 5.0★</Text>
-          </View>
-        </View>
 
         <View style={styles.feeBanner}>
           <Icon name="info" size={15} color={palette.royalDark} />

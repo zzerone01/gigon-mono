@@ -11,8 +11,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Icon } from "../src/components/icon";
 import { Press } from "../src/components/ui";
-import { DEMO_PIN, firstName, gigById } from "../src/data/mock";
-import { useGigStore } from "../src/store/gig-store";
+import { firstName } from "../src/data/mock";
+import { gigById, useGigStore } from "../src/store/gig-store";
 import { font, palette, radius } from "../src/theme";
 
 const PAD_KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫"];
@@ -129,9 +129,6 @@ export default function PinScreen() {
             The PIN records that both sides agree the gig is complete. It doesn't verify payment or
             move money.
           </Text>
-          <View style={styles.demoChip}>
-            <Text style={styles.demoChipText}>demo PIN · {DEMO_PIN}</Text>
-          </View>
         </View>
       </View>
     </View>
@@ -238,16 +235,5 @@ const styles = StyleSheet.create({
     color: palette.muted,
     textAlign: "center",
     maxWidth: 280,
-  },
-  demoChip: {
-    backgroundColor: palette.tintSoft,
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  demoChipText: {
-    fontFamily: font.mono,
-    fontSize: 10.5,
-    color: palette.slate,
   },
 });

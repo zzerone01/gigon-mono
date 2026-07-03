@@ -1,4 +1,6 @@
+import * as Location from "expo-location";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -13,10 +15,34 @@ export default function LocationScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const onbRole = useGigStore((s) => s.onbRole);
-  const finishOnboarding = useGigStore((s) => s.finishOnboarding);
+  const completeOnboarding = useGigStore((s) => s.completeOnboarding);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
-  const done = () => {
-    finishOnboarding();
+  const finish = async (askLocation: boolean) => {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    let coords: { lat: number; lng: number } | null = null;
+    if (askLocation) {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === "granted") {
+          const pos = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+          coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        }
+      } catch {
+        // fall back to the pilot-zone center
+      }
+    }
+    const err = await completeOnboarding(coords);
+    setBusy(false);
+    if (err) {
+      setError(err);
+      return;
+    }
     router.replace(onbRole === "employer" ? "/(employer)/postings" : "/(worker)/explore");
   };
 
@@ -51,12 +77,17 @@ export default function LocationScreen() {
             Businesses only see your approximate distance — e.g. “400 m away”.
           </Text>
         </View>
+        {!!error && (
+          <Text style={{ fontFamily: font.sansSemiBold, fontSize: 12.5, color: palette.red, textAlign: "center" }}>
+            {error}
+          </Text>
+        )}
       </View>
       <View style={{ paddingHorizontal: 24, paddingBottom: insets.bottom + 16, paddingTop: 16, gap: 8 }}>
-        <Press style={styles.cta} onPress={done}>
-          <Text style={styles.ctaLabel}>Allow location access</Text>
+        <Press style={[styles.cta, busy && { opacity: 0.6 }]} onPress={() => finish(true)} disabled={busy}>
+          <Text style={styles.ctaLabel}>{busy ? "Setting up…" : "Allow location access"}</Text>
         </Press>
-        <Press style={styles.skip} onPress={done} haptic={false}>
+        <Press style={styles.skip} onPress={() => finish(false)} haptic={false} disabled={busy}>
           <Text style={styles.skipLabel}>Pick my area manually</Text>
         </Press>
       </View>
