@@ -11,7 +11,7 @@ import {
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { DISPUTE_REASONS } from "../data/mock";
+import { DISPUTE_REASONS, EMPLOYER_CANCEL_REASONS, WORKER_CANCEL_REASONS, firstName } from "../data/mock";
 import { applicantById, useGigStore } from "../store/gig-store";
 import { font, palette, radius } from "../theme";
 import { Icon } from "./icon";
@@ -35,6 +35,8 @@ export function SheetHost() {
         {sheet === "match" && <MatchSheet />}
         {sheet === "noshow" && <NoShowSheet />}
         {sheet === "dispute" && <DisputeSheet />}
+        {sheet === "cancel" && <CancelMatchSheet />}
+        {sheet === "cancelPost" && <CancelPostSheet />}
       </KeyboardAvoidingView>
     </View>
   );
@@ -218,6 +220,127 @@ function DisputeSheet() {
   );
 }
 
+function CancelReasonList({ reasons }: { reasons: string[] }) {
+  const cReason = useGigStore((s) => s.cReason);
+  const setCReason = useGigStore((s) => s.setCReason);
+  return (
+    <View style={{ gap: 7 }}>
+      {reasons.map((label, i) => {
+        const on = cReason === i;
+        return (
+          <Press
+            key={label}
+            onPress={() => setCReason(i)}
+            style={[
+              styles.reasonRow,
+              {
+                backgroundColor: on ? palette.tintSoft : palette.white,
+                borderColor: on ? palette.royal : palette.line,
+              },
+            ]}
+          >
+            <View style={[styles.radio, { borderColor: on ? palette.royal : palette.lineDashed }]}>
+              {on && <View style={styles.radioDot} />}
+            </View>
+            <Text style={styles.reasonLabel}>{label}</Text>
+          </Press>
+        );
+      })}
+    </View>
+  );
+}
+
+function CancelMatchSheet() {
+  const closeSheet = useGigStore((s) => s.closeSheet);
+  const role = useGigStore((s) => s.role);
+  const cReason = useGigStore((s) => s.cReason);
+  const cancelActiveMatch = useGigStore((s) => s.cancelActiveMatch);
+  const matchedId = useGigStore((s) => s.matchedId);
+  const router = useRouter();
+  const isWorker = role === "worker";
+  const workerFirst = firstName(applicantById(matchedId).name);
+  const canSubmit = cReason >= 0;
+
+  return (
+    <SheetCard docked>
+      <View style={styles.grabber} />
+      <View style={styles.disputeHeader}>
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text style={styles.title}>
+            {isWorker ? "Cancel this gig?" : `Cancel on ${workerFirst}?`}
+          </Text>
+          <Text style={styles.metaLine}>
+            {isWorker
+              ? "The business will be notified and the posting reopens for other workers. Cancellations are recorded on your profile."
+              : "They'll be notified right away. Cancelling a matched gig is recorded on your business profile."}
+          </Text>
+        </View>
+        <Press style={styles.closeBtn} onPress={closeSheet} haptic={false}>
+          <Icon name="x" size={15} color={palette.slate} strokeWidth={2.2} />
+        </Press>
+      </View>
+      <CancelReasonList reasons={isWorker ? WORKER_CANCEL_REASONS : EMPLOYER_CANCEL_REASONS} />
+      <Press
+        style={[styles.btn, { height: 50, backgroundColor: canSubmit ? palette.red : palette.line }]}
+        onPress={() => {
+          cancelActiveMatch();
+          router.replace(isWorker ? "/(worker)/explore" : "/(employer)/postings");
+        }}
+        disabled={!canSubmit}
+      >
+        <Text style={[styles.btnLabel, { color: canSubmit ? palette.white : palette.muted, fontSize: 14.5 }]}>
+          Cancel the gig
+        </Text>
+      </Press>
+      <Press style={{ alignSelf: "center", padding: 4 }} onPress={closeSheet} haptic={false}>
+        <Text style={styles.keepLink}>Keep the gig</Text>
+      </Press>
+    </SheetCard>
+  );
+}
+
+function CancelPostSheet() {
+  const closeSheet = useGigStore((s) => s.closeSheet);
+  const cReason = useGigStore((s) => s.cReason);
+  const cancelPosting = useGigStore((s) => s.cancelPosting);
+  const router = useRouter();
+  const canSubmit = cReason >= 0;
+
+  return (
+    <SheetCard docked>
+      <View style={styles.grabber} />
+      <View style={styles.disputeHeader}>
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text style={styles.title}>Cancel this posting?</Text>
+          <Text style={styles.metaLine}>
+            It comes off the feed right away and applicants are released. No penalty — nothing was
+            matched yet.
+          </Text>
+        </View>
+        <Press style={styles.closeBtn} onPress={closeSheet} haptic={false}>
+          <Icon name="x" size={15} color={palette.slate} strokeWidth={2.2} />
+        </Press>
+      </View>
+      <CancelReasonList reasons={EMPLOYER_CANCEL_REASONS} />
+      <Press
+        style={[styles.btn, { height: 50, backgroundColor: canSubmit ? palette.red : palette.line }]}
+        onPress={() => {
+          cancelPosting();
+          router.back();
+        }}
+        disabled={!canSubmit}
+      >
+        <Text style={[styles.btnLabel, { color: canSubmit ? palette.white : palette.muted, fontSize: 14.5 }]}>
+          Cancel the posting
+        </Text>
+      </Press>
+      <Press style={{ alignSelf: "center", padding: 4 }} onPress={closeSheet} haptic={false}>
+        <Text style={styles.keepLink}>Keep it live</Text>
+      </Press>
+    </SheetCard>
+  );
+}
+
 const styles = StyleSheet.create({
   sheetArea: {
     flex: 1,
@@ -363,6 +486,11 @@ const styles = StyleSheet.create({
   photoLabel: {
     fontFamily: font.sansMedium,
     fontSize: 12.5,
+    color: palette.slate,
+  },
+  keepLink: {
+    fontFamily: font.sansSemiBold,
+    fontSize: 13,
     color: palette.slate,
   },
 });

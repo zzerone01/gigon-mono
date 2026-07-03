@@ -155,13 +155,22 @@ export default function EmployerActiveScreen() {
         )}
 
         {status === "MATCHED" && (
-          <Press
-            style={{ alignSelf: "center", padding: 2 }}
-            onPress={() => openSheet("noshow")}
-            haptic={false}
-          >
-            <Text style={styles.noShowLink}>Worker hasn't arrived? Report a no-show</Text>
-          </Press>
+          <View style={{ gap: 4 }}>
+            <Press
+              style={{ alignSelf: "center", padding: 2 }}
+              onPress={() => openSheet("noshow")}
+              haptic={false}
+            >
+              <Text style={styles.noShowLink}>Worker hasn't arrived? Report a no-show</Text>
+            </Press>
+            <Press
+              style={{ alignSelf: "center", padding: 2 }}
+              onPress={() => openSheet("cancel")}
+              haptic={false}
+            >
+              <Text style={styles.noShowLink}>Plans changed? Cancel this gig</Text>
+            </Press>
+          </View>
         )}
       </ScrollView>
     </View>

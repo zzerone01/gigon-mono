@@ -8,6 +8,8 @@ import * as Haptics from "expo-haptics";
 import { create } from "zustand";
 
 import {
+  EMPLOYER_CANCEL_REASONS,
+  WORKER_CANCEL_REASONS,
   mapApplicant,
   mapGig,
   firstName,
@@ -22,7 +24,7 @@ import { supabase } from "../lib/supabase";
 export type Role = "worker" | "employer";
 export type WorkerStatus = "APPLIED" | "MATCHED" | "IN_PROGRESS" | "COMPLETED" | "RATED";
 export type EmployerStatus = "POSTED" | "MATCHED" | "IN_PROGRESS" | "COMPLETED" | "RATED";
-export type SheetKind = "match" | "noshow" | "dispute";
+export type SheetKind = "match" | "noshow" | "dispute" | "cancel" | "cancelPost";
 
 export interface ChatMsg {
   me: boolean;
@@ -85,6 +87,7 @@ interface GigState {
   dText: string;
   dFiled: boolean;
   disputeTicket: string | null;
+  cReason: number;
 
   // employer
   posted: boolean;
@@ -143,6 +146,9 @@ interface GigState {
   setDReason: (i: number) => void;
   setDText: (v: string) => void;
   fileDispute: () => Promise<void>;
+  setCReason: (i: number) => void;
+  cancelActiveMatch: () => Promise<void>;
+  cancelPosting: () => Promise<void>;
   markChatRead: () => void;
   sendChat: (text: string) => Promise<void>;
 
@@ -250,10 +256,13 @@ function setupFeedRealtime(get: () => GigState) {
       "postgres_changes",
       { event: "UPDATE", schema: "public", table: "matches", filter: `worker_id=eq.${uid}` },
       (payload) => {
-        const next = payload.new as { status: string };
+        const next = payload.new as { status: string; cancelled_by?: string | null };
         if (get().role !== "worker") return;
         if (next.status === "NO_SHOW") {
           get().showToast("No-show recorded", "This gig was reopened by the business");
+        }
+        if (next.status === "CANCELLED" && next.cancelled_by !== uid) {
+          get().showToast("Gig cancelled by the business", "You're free to apply to other gigs nearby");
         }
         get().loadWorker();
       },
@@ -274,8 +283,11 @@ function setupFeedRealtime(get: () => GigState) {
       "postgres_changes",
       { event: "UPDATE", schema: "public", table: "matches", filter: `employer_id=eq.${uid}` },
       (payload) => {
-        const next = payload.new as { status: string };
+        const next = payload.new as { status: string; cancelled_by?: string | null };
         if (get().role !== "employer") return;
+        if (next.status === "CANCELLED" && next.cancelled_by !== uid) {
+          get().showToast("Worker cancelled", "Recorded on their profile · your gig is live again", "/e-applicants");
+        }
         if (next.status === "IN_PROGRESS") {
           get().showToast("Worker arrived · IN_PROGRESS", "They tapped “I've arrived” on site", "/e-active");
         }
@@ -355,6 +367,7 @@ const initialFlow = {
   dText: "",
   dFiled: false,
   disputeTicket: null as string | null,
+  cReason: -1,
   posted: false,
   posting: null as PostingVM | null,
   eStatus: null as EmployerStatus | null,
@@ -513,6 +526,8 @@ export const useGigStore = create<GigState>((set, get) => ({
     const p = get().profile;
     const you = { lat: p?.lat ?? MACTAN_CENTER.lat, lng: p?.lng ?? MACTAN_CENTER.lng };
 
+    // Sweep POSTED gigs past their expiry before reading the feed
+    await supabase.rpc("expire_stale_gigs");
     const [gigsRes, appsRes, matchRes, histRes] = await Promise.all([
       supabase
         .from("gigs")
@@ -723,6 +738,49 @@ export const useGigStore = create<GigState>((set, get) => ({
     get().showToast(`Dispute #${data} opened · DISPUTED`, "The GigOn team reviews within 24 h");
   },
 
+  setCReason: (i) => set({ cReason: i }),
+  cancelActiveMatch: async () => {
+    const st = get();
+    const isWorker = st.role === "worker";
+    const matchId = isWorker ? wMatchId : eMatchId;
+    const reasons = isWorker ? WORKER_CANCEL_REASONS : EMPLOYER_CANCEL_REASONS;
+    set({ sheet: null });
+    if (!matchId || st.cReason < 0) return;
+    const { error } = await supabase.rpc("cancel_match", {
+      p_match: matchId,
+      p_reason: reasons[st.cReason] ?? "Other",
+    });
+    set({ cReason: -1 });
+    if (error) {
+      get().showToast("Couldn't cancel", error.message);
+      return;
+    }
+    if (isWorker) {
+      get().showToast("Gig cancelled", "Recorded on your profile — the posting reopened for others");
+      await get().loadWorker();
+    } else {
+      get().showToast("Gig cancelled", "The worker was notified · posting closed");
+      set({ pinDigits: null, pinIssued: false });
+      await get().loadEmployer();
+    }
+  },
+  cancelPosting: async () => {
+    const st = get();
+    set({ sheet: null });
+    if (!eGigId) return;
+    const { error } = await supabase.rpc("cancel_gig", {
+      p_gig: eGigId,
+      p_reason: EMPLOYER_CANCEL_REASONS[st.cReason] ?? "Other",
+    });
+    set({ cReason: -1 });
+    if (error) {
+      get().showToast("Couldn't cancel the posting", error.message);
+      return;
+    }
+    get().showToast("Posting cancelled", "Applicants were released — post again anytime");
+    await get().loadEmployer();
+  },
+
   markChatRead: () => set({ unread: 0 }),
   sendChat: async (text) => {
     const t = text.trim();
@@ -739,6 +797,8 @@ export const useGigStore = create<GigState>((set, get) => ({
     const p = get().profile;
     const bizLoc = { lat: p?.lat ?? MACTAN_CENTER.lat, lng: p?.lng ?? MACTAN_CENTER.lng };
 
+    // Sweep POSTED gigs past their expiry so the console reflects EXPIRED
+    await supabase.rpc("expire_stale_gigs");
     const { data: g } = await supabase
       .from("gigs")
       .select("*")

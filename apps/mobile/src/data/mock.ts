@@ -71,6 +71,20 @@ export const DISPUTE_REASONS = [
   "Work quality / other",
 ];
 
+export const WORKER_CANCEL_REASONS = [
+  "Emergency — can't make it",
+  "Schedule conflict",
+  "Took another gig",
+  "Other",
+];
+
+export const EMPLOYER_CANCEL_REASONS = [
+  "No longer needed",
+  "Rescheduled — will repost",
+  "Made other arrangements",
+  "Other",
+];
+
 export function firstName(name: string | null | undefined): string {
   return name?.trim().split(/\s+/)[0] ?? "";
 }

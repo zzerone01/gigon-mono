@@ -119,6 +119,13 @@ export default function ActiveGigScreen() {
               Tap when you're at {gig.biz} — this starts the gig (IN_PROGRESS).{"\n"}No background
               GPS: arrival is always your tap.
             </Text>
+            <Press
+              style={{ alignSelf: "center", padding: 2 }}
+              onPress={() => openSheet("cancel")}
+              haptic={false}
+            >
+              <Text style={styles.disputeLink}>Can't make it? Cancel this gig</Text>
+            </Press>
           </View>
         )}
 

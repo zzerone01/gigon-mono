@@ -112,6 +112,14 @@ export default function ApplicantsScreen() {
           Ranked by distance. History shows no-shows and late cancels — recorded automatically by
           the app, not self-reported.
         </Text>
+
+        <Press
+          style={{ alignSelf: "center", padding: 2 }}
+          onPress={() => openSheet("cancelPost")}
+          haptic={false}
+        >
+          <Text style={styles.cancelPostLink}>Don't need help anymore? Cancel this posting</Text>
+        </Press>
       </ScrollView>
     </View>
   );
@@ -283,5 +291,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingHorizontal: 12,
     paddingVertical: 4,
+  },
+  cancelPostLink: {
+    fontFamily: font.sans,
+    fontSize: 12,
+    color: palette.muted,
+    textDecorationLine: "underline",
   },
 });
