@@ -296,6 +296,9 @@ export type Database = {
         Row: {
           application_id: string
           arrived_at: string | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           completed_at: string | null
           created_at: string
           employer_id: string
@@ -308,6 +311,9 @@ export type Database = {
         Insert: {
           application_id: string
           arrived_at?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           completed_at?: string | null
           created_at?: string
           employer_id: string
@@ -320,6 +326,9 @@ export type Database = {
         Update: {
           application_id?: string
           arrived_at?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           completed_at?: string | null
           created_at?: string
           employer_id?: string
@@ -335,6 +344,13 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -526,6 +542,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      cancel_gig: {
+        Args: { p_gig: string; p_reason?: string }
+        Returns: undefined
+      }
+      cancel_match: {
+        Args: { p_match: string; p_reason?: string }
+        Returns: undefined
+      }
       complete_onboarding: {
         Args: {
           p_area: string
@@ -536,6 +560,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      expire_stale_gigs: { Args: never; Returns: number }
       issue_pin: { Args: { p_match: string }; Returns: string }
       mark_arrived: { Args: { p_match: string }; Returns: undefined }
       open_dispute: {
