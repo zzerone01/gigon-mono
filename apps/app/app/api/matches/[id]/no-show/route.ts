@@ -1,6 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
+import { track } from "@/lib/server/analytics";
 import { audit } from "@/lib/server/audit";
 import { requireUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
@@ -56,7 +57,7 @@ export const POST = withErrors(async (req, ctx) => {
       .select({ title: gigs.title })
       .from(gigs)
       .where(eq(gigs.id, match.gigId));
-    return { workerId: match.workerId, gigTitle: gig?.title ?? "the gig" };
+    return { workerId: match.workerId, gigId: match.gigId, gigTitle: gig?.title ?? "the gig" };
   });
 
   defer(() =>
@@ -66,6 +67,7 @@ export const POST = withErrors(async (req, ctx) => {
       data: { type: "no_show", matchId },
     }),
   );
+  defer(() => track(user.id, "no_show_reported", { gigId: notify.gigId, matchId }));
 
   return ok({});
 });

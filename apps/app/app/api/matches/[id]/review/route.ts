@@ -3,9 +3,11 @@ import { z } from "zod";
 
 import { postReviewBody } from "@repo/api/schemas";
 
+import { track } from "@/lib/server/analytics";
 import { audit } from "@/lib/server/audit";
 import { requireUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
+import { defer } from "@/lib/server/defer";
 import { ApiError, ok, readJson, withErrors } from "@/lib/server/errors";
 import { matches, profiles, reviews } from "@/lib/server/schema";
 
@@ -14,7 +16,7 @@ export const POST = withErrors(async (req, ctx) => {
   const matchId = z.uuid().parse((await ctx.params).id);
   const body = postReviewBody.parse(await readJson(req));
 
-  await db.transaction(async (tx) => {
+  const reviewed = await db.transaction(async (tx) => {
     const [match] = await tx.select().from(matches).where(eq(matches.id, matchId));
     if (!match) throw new ApiError(404, "not_found", "match not found");
     if (match.workerId !== user.id && match.employerId !== user.id) {
@@ -60,7 +62,20 @@ export const POST = withErrors(async (req, ctx) => {
       actorId: user.id,
       payload: { stars: body.stars },
     });
+    return {
+      gigId: match.gigId,
+      role: user.id === match.workerId ? "worker" : "business",
+    };
   });
+
+  defer(() =>
+    track(user.id, "review_submitted", {
+      gigId: reviewed.gigId,
+      matchId,
+      role: reviewed.role,
+      stars: body.stars,
+    }),
+  );
 
   return ok({});
 });

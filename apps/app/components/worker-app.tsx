@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { usePostHog } from "@posthog/react";
+
 import { Icon, GIG_TYPE_ICON } from "@/components/icons";
 import { CancelSheet, ChatSheet, RateSheet } from "@/components/sheets";
 import { useToast } from "@/components/shell";
@@ -548,6 +550,12 @@ function GigDetailSheet({
   onApply: () => void;
   onClose: () => void;
 }) {
+  const posthog = usePostHog();
+  // top of the worker funnel: 탐색 → (gig_viewed) → gig_applied → …
+  useEffect(() => {
+    posthog?.capture("gig_viewed", { gigId: gig.id, type: gig.type });
+  }, [posthog, gig.id, gig.type]);
+
   const since = new Date(gig.employer.created_at).toLocaleDateString("en-PH", {
     month: "short",
     year: "numeric",

@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { sendMessageBody } from "@repo/api/schemas";
 
+import { track } from "@/lib/server/analytics";
 import { requireUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
 import { defer } from "@/lib/server/defer";
@@ -47,6 +48,7 @@ export const POST = withErrors(async (req, ctx) => {
       .where(eq(profiles.id, user.id));
     return {
       id: message!.id,
+      role: match.workerId === user.id ? "worker" : "business",
       recipientId: match.workerId === user.id ? match.employerId : match.workerId,
       senderName:
         (match.employerId === user.id ? sender?.businessName : null) ??
@@ -62,6 +64,7 @@ export const POST = withErrors(async (req, ctx) => {
       data: { type: "message", matchId },
     }),
   );
+  defer(() => track(user.id, "message_sent", { matchId, role: result.role }));
 
   return ok({ id: result.id });
 });

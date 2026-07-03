@@ -4,9 +4,11 @@ import bcrypt from "bcryptjs";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
+import { track } from "@/lib/server/analytics";
 import { audit } from "@/lib/server/audit";
 import { requireUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
+import { defer } from "@/lib/server/defer";
 import { ApiError, ok, withErrors } from "@/lib/server/errors";
 import { matches, matchPins } from "@/lib/server/schema";
 
@@ -43,6 +45,8 @@ export const POST = withErrors(async (req, ctx) => {
     await audit(tx, "pin_issued", { matchId, actorId: user.id });
     return newPin;
   });
+
+  defer(() => track(user.id, "pin_issued", { matchId }));
 
   // the plaintext PIN exists only in this response — never stored or logged
   return ok({ pin });

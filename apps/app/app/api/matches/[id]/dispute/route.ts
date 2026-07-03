@@ -3,9 +3,11 @@ import { z } from "zod";
 
 import { openDisputeBody } from "@repo/api/schemas";
 
+import { track } from "@/lib/server/analytics";
 import { audit } from "@/lib/server/audit";
 import { requireUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
+import { defer } from "@/lib/server/defer";
 import { ApiError, ok, readJson, withErrors } from "@/lib/server/errors";
 import { disputes, matches } from "@/lib/server/schema";
 
@@ -14,7 +16,7 @@ export const POST = withErrors(async (req, ctx) => {
   const matchId = z.uuid().parse((await ctx.params).id);
   const body = openDisputeBody.parse(await readJson(req));
 
-  const ticket = await db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const [match] = await tx
       .select({ workerId: matches.workerId, employerId: matches.employerId })
       .from(matches)
@@ -38,8 +40,15 @@ export const POST = withErrors(async (req, ctx) => {
       actorId: user.id,
       payload: { reason: body.reason },
     });
-    return `D-${1000 + dispute!.id}`;
+    return {
+      ticket: `D-${1000 + dispute!.id}`,
+      role: user.id === match.workerId ? "worker" : "business",
+    };
   });
 
-  return ok({ ticket });
+  defer(() =>
+    track(user.id, "dispute_opened", { matchId, role: result.role, reason: body.reason }),
+  );
+
+  return ok({ ticket: result.ticket });
 });

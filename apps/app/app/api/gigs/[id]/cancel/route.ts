@@ -3,9 +3,11 @@ import { z } from "zod";
 
 import { cancelBody } from "@repo/api/schemas";
 
+import { track } from "@/lib/server/analytics";
 import { audit } from "@/lib/server/audit";
 import { requireUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
+import { defer } from "@/lib/server/defer";
 import { ApiError, ok, readJson, withErrors } from "@/lib/server/errors";
 import { applications, gigs } from "@/lib/server/schema";
 
@@ -37,6 +39,8 @@ export const POST = withErrors(async (req, ctx) => {
       payload: { reason: body.reason ?? "" },
     });
   });
+
+  defer(() => track(user.id, "gig_cancelled", { gigId, reason: body.reason ?? "" }));
 
   return ok({});
 });

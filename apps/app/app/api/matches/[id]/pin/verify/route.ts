@@ -4,9 +4,11 @@ import { z } from "zod";
 
 import { verifyPinBody, type VerifyPinResponse } from "@repo/api/schemas";
 
+import { track } from "@/lib/server/analytics";
 import { audit } from "@/lib/server/audit";
 import { requireUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
+import { defer } from "@/lib/server/defer";
 import { ApiError, raw, readJson, withErrors } from "@/lib/server/errors";
 import { gigs, matches, matchPins, profiles } from "@/lib/server/schema";
 
@@ -20,6 +22,9 @@ export const POST = withErrors(async (req, ctx) => {
   const user = await requireUser(req);
   const matchId = z.uuid().parse((await ctx.params).id);
   const body = verifyPinBody.parse(await readJson(req));
+
+  // hoisted out of the transaction — analytics fires only after commit
+  let completed: { gigId: string; employerId: string } | null = null;
 
   const result = await db.transaction(async (tx): Promise<VerifyPinResponse> => {
     const [match] = await tx.select().from(matches).where(eq(matches.id, matchId));
@@ -63,6 +68,7 @@ export const POST = withErrors(async (req, ctx) => {
         matchId,
         actorId: user.id,
       });
+      completed = { gigId: match.gigId, employerId: match.employerId };
       return { ok: true };
     }
 
@@ -80,6 +86,17 @@ export const POST = withErrors(async (req, ctx) => {
       .where(eq(matchPins.matchId, matchId));
     return { ok: false, error: "wrong_pin", attempts_left: 3 - (pins.attempts + 1) };
   });
+
+  if (completed) {
+    // the KPI funnel's conversion step — one event per side (see select route)
+    const { gigId, employerId } = completed;
+    defer(() =>
+      Promise.all([
+        track(user.id, "match_completed", { gigId, matchId, role: "worker" }),
+        track(employerId, "match_completed", { gigId, matchId, role: "business" }),
+      ]),
+    );
+  }
 
   return raw(result);
 });

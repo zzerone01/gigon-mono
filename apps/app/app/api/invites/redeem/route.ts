@@ -2,8 +2,10 @@ import { and, eq, gt, sql } from "drizzle-orm";
 
 import { redeemInviteBody } from "@repo/api/schemas";
 
+import { track } from "@/lib/server/analytics";
 import { requireUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
+import { defer } from "@/lib/server/defer";
 import { ok, readJson, withErrors } from "@/lib/server/errors";
 import { inviteCodes, profiles } from "@/lib/server/schema";
 
@@ -35,6 +37,15 @@ export const POST = withErrors(async (req) => {
       .where(eq(profiles.id, user.id));
     return { ok: true };
   });
+
+  if (result.ok) {
+    defer(() =>
+      track(user.id, "invite_redeemed", {
+        code: body.code.trim().toUpperCase(),
+        $set: { active_role: "employer", employer_verified: true },
+      }),
+    );
+  }
 
   return ok(result);
 });

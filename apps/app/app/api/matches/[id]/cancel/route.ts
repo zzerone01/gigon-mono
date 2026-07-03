@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { cancelBody } from "@repo/api/schemas";
 
+import { track } from "@/lib/server/analytics";
 import { audit } from "@/lib/server/audit";
 import { requireUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
@@ -91,6 +92,8 @@ export const POST = withErrors(async (req, ctx) => {
       .where(eq(profiles.id, user.id));
     return {
       recipientId: isWorker ? match.employerId : match.workerId,
+      gigId: match.gigId,
+      role: isWorker ? "worker" : "business",
       gigTitle: gig?.title ?? "your gig",
       cancellerName:
         (isWorker ? null : canceller?.businessName) ?? canceller?.fullName ?? "The other party",
@@ -102,6 +105,14 @@ export const POST = withErrors(async (req, ctx) => {
       title: "Gig cancelled",
       body: `${notify.cancellerName} cancelled “${notify.gigTitle}”.`,
       data: { type: "match_cancelled", matchId },
+    }),
+  );
+  defer(() =>
+    track(user.id, "match_cancelled", {
+      gigId: notify.gigId,
+      matchId,
+      role: notify.role,
+      reason,
     }),
   );
 

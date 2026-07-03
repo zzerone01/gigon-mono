@@ -1,9 +1,11 @@
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
+import { track } from "@/lib/server/analytics";
 import { audit } from "@/lib/server/audit";
 import { requireUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
+import { defer } from "@/lib/server/defer";
 import { ApiError, ok, withErrors } from "@/lib/server/errors";
 import { matches } from "@/lib/server/schema";
 
@@ -29,6 +31,8 @@ export const POST = withErrors(async (req, ctx) => {
 
     await audit(tx, "arrived", { matchId, actorId: user.id });
   });
+
+  defer(() => track(user.id, "worker_arrived", { matchId }));
 
   return ok({});
 });

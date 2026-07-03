@@ -3,6 +3,8 @@ import { Inter, Poppins } from "next/font/google";
 
 import "./globals.css";
 
+import { PostHogProvider } from "./providers";
+
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -36,7 +38,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
-      <body className="font-sans text-ink antialiased">{children}</body>
+      <body className="font-sans text-ink antialiased">
+        <PostHogProvider>{children}</PostHogProvider>
+      </body>
     </html>
   );
 }

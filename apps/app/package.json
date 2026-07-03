@@ -12,6 +12,7 @@
     "check-types": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@posthog/react": "^1.10.3",
     "@repo/api": "workspace:^",
     "@repo/supabase": "workspace:*",
     "@repo/ui": "workspace:*",
@@ -23,6 +24,8 @@
     "drizzle-orm": "^0.45.2",
     "next": "16.2.0",
     "postgres": "^3.4.9",
+    "posthog-js": "^1.396.2",
+    "posthog-node": "^5.39.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tailwind-merge": "^3.6.0",

@@ -49,7 +49,9 @@ export async function proxy(request: NextRequest) {
 export const config = {
   // /api is excluded: handlers do their own auth via requireUser() and must
   // answer 401 JSON — a /login 307 would hand mobile clients an HTML page.
+  // /ingest is excluded: the PostHog reverse proxy (next.config.js rewrites)
+  // must accept events from logged-out visitors too (e.g. /login pageviews).
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!api|ingest|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

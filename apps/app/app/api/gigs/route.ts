@@ -2,9 +2,11 @@ import { eq } from "drizzle-orm";
 
 import { postGigBody } from "@repo/api/schemas";
 
+import { track } from "@/lib/server/analytics";
 import { audit } from "@/lib/server/audit";
 import { requireUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
+import { defer } from "@/lib/server/defer";
 import { ApiError, ok, readJson, withErrors } from "@/lib/server/errors";
 import { gigs, profiles } from "@/lib/server/schema";
 
@@ -46,6 +48,16 @@ export const POST = withErrors(async (req) => {
     });
     return gig!.id;
   });
+
+  defer(() =>
+    track(user.id, "gig_posted", {
+      gigId: id,
+      type: body.type,
+      pay: body.pay,
+      slots: body.slots,
+      area: body.area,
+    }),
+  );
 
   return ok({ id });
 });

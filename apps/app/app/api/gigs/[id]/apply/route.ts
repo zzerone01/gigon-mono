@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
+import { track } from "@/lib/server/analytics";
 import { audit } from "@/lib/server/audit";
 import { requireUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
@@ -52,6 +53,7 @@ export const POST = withErrors(async (req, ctx) => {
       data: { type: "applied", gigId },
     }),
   );
+  defer(() => track(user.id, "gig_applied", { gigId, applicationId: result.id }));
 
   return ok({ id: result.id });
 });

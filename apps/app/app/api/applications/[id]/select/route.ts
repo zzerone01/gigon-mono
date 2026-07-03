@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
+import { track } from "@/lib/server/analytics";
 import { audit } from "@/lib/server/audit";
 import { requireUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
@@ -64,6 +65,7 @@ export const POST = withErrors(async (req, ctx) => {
     });
     return {
       matchId: match!.id,
+      gigId: row.application.gigId,
       workerId: row.application.workerId,
       gigTitle: row.gigTitle,
       employerName: employer?.businessName ?? employer?.fullName ?? "The business",
@@ -77,6 +79,14 @@ export const POST = withErrors(async (req, ctx) => {
       data: { type: "matched", matchId: result.matchId },
     }),
   );
+  // one event per side so both the worker and the business funnel line up
+  defer(() => {
+    const props = { gigId: result.gigId, matchId: result.matchId };
+    return Promise.all([
+      track(user.id, "match_created", { ...props, role: "business" }),
+      track(result.workerId, "match_created", { ...props, role: "worker" }),
+    ]);
+  });
 
   return ok({ matchId: result.matchId });
 });
