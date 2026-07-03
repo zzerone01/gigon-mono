@@ -292,13 +292,26 @@ max_frequency = "5s"
 
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
 # Local dev: a provider must be enabled for phone OTP; test_otp numbers above
-# never hit Twilio, so dummy credentials are safe here. Production projects
-# configure a real provider in the dashboard instead.
+# never hit Twilio, so dummy credentials are safe here. Real delivery goes
+# through the send_sms hook below (Semaphore), not this provider.
 [auth.sms.twilio]
 enabled = true
 account_sid = "AC_local_test"
 message_service_sid = "MG_local_test"
 auth_token = "local-test-token"
+
+# Real SMS delivery: Semaphore (PH-local) via the send-sms edge function.
+# test_otp numbers bypass this hook entirely. Secrets live in
+# supabase/.env.local (gitignored) — source it before `config push`/`start`:
+#   set -a; source supabase/.env.local; set +a
+[auth.hook.send_sms]
+enabled = true
+uri = "https://uoeatrexoeghoigbxage.supabase.co/functions/v1/send-sms"
+secrets = "env(SEND_SMS_HOOK_SECRETS)"
+
+# The auth hook authenticates with its webhook signature, not a client JWT.
+[functions.send-sms]
+verify_jwt = false
 
 # Multi-factor-authentication is available to Supabase Pro plan.
 [auth.mfa]

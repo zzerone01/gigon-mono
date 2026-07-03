@@ -57,6 +57,22 @@ invite_codes    사장님 초대코드 (RPC 전용)
 - 비밀값은 정책이 아니라 **grant 없는 별도 테이블**로 격리 (예: match_pins)
 - `invite_codes` / `audit_log` / `match_pins`: 정책 없음(어드바이저에 INFO만 뜸, 정상)
 
+## SMS (Semaphore — send_sms 훅)
+
+실 OTP 발송은 Twilio가 아니라 **Semaphore**(필리핀 로컬, ~₱1.12/OTP) — Supabase
+**Send SMS Hook**으로 연결:
+
+- `supabase/functions/send-sms/index.ts` — 훅 서명(standardwebhooks) 검증 후
+  Semaphore OTP API(`/api/v4/otp`, `code`=Supabase OTP) 호출. test_otp 번호는 훅에 안 옴
+- config.toml `[auth.hook.send_sms]`(uri=클라우드 함수) + `[functions.send-sms] verify_jwt=false`
+- 비밀값: `supabase/.env.local`(**gitignored**) — `SEMAPHORE_API_KEY`,
+  `SEND_SMS_HOOK_SECRETS`(v1,whsec_…). 클라우드엔 `supabase secrets set`으로 주입됨
+- 배포: `npx supabase functions deploy send-sms --use-api`
+  (로컬 Docker 번들은 Colima에서 실패 → `--use-api` 필수),
+  설정 반영: `set -a; source supabase/.env.local; set +a; npx supabase config push --yes`
+- Semaphore 계정(account_id 77688, "gigon"): **승인 + Sender Name 신청 + 크레딧 충전**
+  후 실발송 활성화. 상태 확인: `GET api.semaphore.co/api/v4/account?apikey=…`
+
 ## Realtime
 
 publication `supabase_realtime`: `matches`, `applications`, `messages`, `gigs`.
