@@ -119,8 +119,8 @@ export default function TermsPage() {
       <Section title="11. Contact">
         <p>
           Questions about these terms:{" "}
-          <a href="mailto:hello@gigon.io" className="font-semibold text-royal underline underline-offset-2">
-            hello@gigon.io
+          <a href="mailto:leo@gigon.io" className="font-semibold text-royal underline underline-offset-2">
+            leo@gigon.io
           </a>
           . These terms are governed by the laws of the Republic of the Philippines.
         </p>

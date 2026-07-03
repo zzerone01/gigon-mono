@@ -29,8 +29,8 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
       <footer className="border-t border-line-soft px-5 py-5 text-center text-[10.5px] text-ink-muted">
         © 2026 GigOn · <Link href="/terms" className="underline underline-offset-2">Terms</Link> ·{" "}
         <Link href="/privacy" className="underline underline-offset-2">Privacy</Link> ·{" "}
-        <a href="mailto:hello@gigon.io" className="underline underline-offset-2">
-          hello@gigon.io
+        <a href="mailto:leo@gigon.io" className="underline underline-offset-2">
+          leo@gigon.io
         </a>
       </footer>
     </div>

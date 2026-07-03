@@ -32,7 +32,7 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-3">
           <Button asChild variant="ghost" className="hidden md:inline-flex">
-            <Link href="#how">How it works</Link>
+            <a href={siteConfig.appUrl}>Open the app</a>
           </Button>
           <Button asChild size="sm" className="md:h-11 md:px-5 md:text-sm">
             <Link href="#waitlist">
@@ -68,10 +68,15 @@ export function SiteHeader() {
                 {item.label}
               </Link>
             ))}
-            <Button asChild className="mb-2 mt-3">
+            <Button asChild className="mt-3">
               <Link href="#waitlist" onClick={() => setOpen(false)}>
                 Join the waitlist
               </Link>
+            </Button>
+            <Button asChild variant="outline" className="mb-2 mt-2">
+              <a href={siteConfig.appUrl} onClick={() => setOpen(false)}>
+                Open the app
+              </a>
             </Button>
           </nav>
         </div>

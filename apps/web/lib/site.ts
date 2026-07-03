@@ -5,6 +5,8 @@ export const siteConfig = {
   tagline: "Your gig is on.",
   domain: "gigon.io",
   url: "https://gigon.io",
+  /** The live web app (private beta). */
+  appUrl: "https://app.gigon.io",
   description:
     "GigOn connects small businesses with trusted workers nearby for the quick 1–3 hour jobs you need filled right now. No more hunting through Facebook groups. Now in private beta across the Philippines.",
   shortDescription:
@@ -13,7 +15,7 @@ export const siteConfig = {
   locationLabel: "the Philippines",
   /** Short label, for chips/eyebrows ("Now in private beta · Philippines"). */
   region: "Philippines",
-  contactEmail: "hello@gigon.io",
+  contactEmail: "leo@gigon.io",
   nav: [
     { label: "How it works", href: "#how" },
     { label: "For business", href: "#business" },

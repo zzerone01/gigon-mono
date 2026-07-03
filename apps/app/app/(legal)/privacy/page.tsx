@@ -76,8 +76,8 @@ export default function PrivacyPage() {
         <p>
           Under the Philippine Data Privacy Act of 2012 (RA 10173), you can ask for access to,
           correction of, or deletion of your personal data, or object to its processing. Email{" "}
-          <a href="mailto:hello@gigon.io" className="font-semibold text-royal underline underline-offset-2">
-            hello@gigon.io
+          <a href="mailto:leo@gigon.io" className="font-semibold text-royal underline underline-offset-2">
+            leo@gigon.io
           </a>{" "}
           and we&apos;ll respond within 15 days.
         </p>

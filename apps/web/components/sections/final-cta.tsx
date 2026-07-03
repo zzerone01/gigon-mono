@@ -22,6 +22,15 @@ export function FinalCta() {
             <div className="mx-auto mt-7 max-w-[460px] rounded-2xl border border-white/15 bg-white/[0.07] p-4 text-left sm:p-5">
               <WaitlistForm source="final-cta" tone="onRoyal" />
             </div>
+            <p className="mt-4 text-sm text-[#cdd9f0]">
+              Already in the beta?{" "}
+              <a
+                href={siteConfig.appUrl}
+                className="font-semibold text-white underline underline-offset-2"
+              >
+                Open the app &rarr;
+              </a>
+            </p>
           </div>
         </div>
       </Reveal>

@@ -60,6 +60,15 @@ export function Hero() {
               );
             })}
           </ul>
+          <p className="mt-2.5 px-1 text-[13px] text-slate">
+            Already in the beta?{" "}
+            <a
+              href={siteConfig.appUrl}
+              className="font-semibold text-royal underline-offset-2 hover:underline"
+            >
+              Open the app &rarr;
+            </a>
+          </p>
         </div>
       </div>
     </section>
