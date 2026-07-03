@@ -50,6 +50,7 @@ async function call(
   who: Session | null,
   body?: unknown,
   id?: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<{ status: number; json: any }> {
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (who) headers.authorization = `Bearer ${who.token}`;

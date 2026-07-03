@@ -6,7 +6,7 @@
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**"],
-      "env": ["WAITLIST_ENDPOINT"]
+      "env": ["WAITLIST_ENDPOINT", "DATABASE_URL"]
     },
     "lint": {
       "dependsOn": ["^lint"]

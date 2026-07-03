@@ -23,6 +23,7 @@ import {
   type Match,
   type Profile,
 } from "@/lib/domain";
+import { api } from "@/lib/api";
 import { MACTAN_CENTER, distanceMeters, formatDistance } from "@/lib/geo";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
@@ -215,9 +216,10 @@ export function WorkerApp({ profile }: { profile: Profile }) {
   /* ---------------------------- actions ---------------------------- */
 
   const apply = async (gig: GigWithEmployer) => {
-    const { error } = await supabase.rpc("apply_to_gig", { p_gig: gig.id });
-    if (error) {
-      toast("Couldn't apply", error.message);
+    try {
+      await api.post(`/api/gigs/${gig.id}/apply`);
+    } catch (error) {
+      toast("Couldn't apply", (error as Error).message);
       return;
     }
     setDetail(null);
@@ -227,34 +229,34 @@ export function WorkerApp({ profile }: { profile: Profile }) {
 
   const arrive = async () => {
     if (!activeMatch) return;
-    const { error } = await supabase.rpc("mark_arrived", { p_match: activeMatch.id });
-    if (error) return toast("Couldn't log arrival", error.message);
+    try {
+      await api.post(`/api/matches/${activeMatch.id}/arrive`);
+    } catch (error) {
+      return toast("Couldn't log arrival", (error as Error).message);
+    }
     toast("Arrival logged · IN_PROGRESS", "Recorded in the append-only audit log");
     loadAll();
   };
 
   const cancelMatch = async (reason: string) => {
     if (!activeMatch) return;
-    const { error } = await supabase.rpc("cancel_match", {
-      p_match: activeMatch.id,
-      p_reason: reason,
-    });
+    try {
+      await api.post(`/api/matches/${activeMatch.id}/cancel`, { reason });
+    } catch (error) {
+      setCancelOpen(false);
+      return toast("Couldn't cancel", (error as Error).message);
+    }
     setCancelOpen(false);
-    if (error) return toast("Couldn't cancel", error.message);
     toast("Gig cancelled", "Recorded on your profile — the posting reopened for others");
     loadAll();
   };
 
   const submitReview = async (stars: number, tags: string[], comment: string) => {
     if (!activeMatch) return;
-    const { error } = await supabase.rpc("post_review", {
-      p_match: activeMatch.id,
-      p_stars: stars,
-      p_tags: tags,
-      p_comment: comment,
-    });
-    if (error) {
-      toast("Couldn't post review", error.message);
+    try {
+      await api.post(`/api/matches/${activeMatch.id}/review`, { stars, tags, comment });
+    } catch (error) {
+      toast("Couldn't post review", (error as Error).message);
       return;
     }
     setRateOpen(false);
@@ -694,7 +696,6 @@ function PinSheet({
   onSuccess: () => void;
   onClose: () => void;
 }) {
-  const supabase = supabaseBrowser();
   const [pin, setPin] = useState("");
   const [err, setErr] = useState("");
   const [lock, setLock] = useState(0);
@@ -724,17 +725,16 @@ function PinSheet({
     setErr("");
     if (next.length === 4) {
       busyRef.current = true;
-      const { data, error } = await supabase.rpc("verify_pin", {
-        p_match: matchId,
-        p_pin: next,
-      });
-      busyRef.current = false;
-      if (error) {
+      let res: { ok: boolean; error?: string; attempts_left?: number; locked_for?: number };
+      try {
+        res = await api.post(`/api/matches/${matchId}/pin/verify`, { pin: next });
+      } catch (error) {
+        busyRef.current = false;
         setPin("");
-        setErr(error.message);
+        setErr((error as Error).message);
         return;
       }
-      const res = data as { ok: boolean; error?: string; attempts_left?: number; locked_for?: number };
+      busyRef.current = false;
       if (res.ok) {
         onSuccess();
         return;
@@ -822,7 +822,6 @@ function DisputeSheet({
   onFiled: (ticket: string) => void;
   onClose: () => void;
 }) {
-  const supabase = supabaseBrowser();
   const [reason, setReason] = useState(-1);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -831,14 +830,18 @@ function DisputeSheet({
   const submit = async () => {
     if (!can) return;
     setBusy(true);
-    const { data, error } = await supabase.rpc("open_dispute", {
-      p_match: matchId,
-      p_reason: DISPUTE_REASONS[reason]!,
-      p_detail: text,
-    });
+    let ticket: string;
+    try {
+      ({ ticket } = await api.post<{ ticket: string }>(`/api/matches/${matchId}/dispute`, {
+        reason: DISPUTE_REASONS[reason]!,
+        detail: text,
+      }));
+    } catch {
+      setBusy(false);
+      return;
+    }
     setBusy(false);
-    if (error || !data) return;
-    onFiled(String(data).replace(/^D-/, ""));
+    onFiled(ticket.replace(/^D-/, ""));
   };
 
   return (

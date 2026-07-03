@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { api } from "@/lib/api";
 import type { Message } from "@/lib/domain";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { Icon } from "./icons";
@@ -69,16 +70,18 @@ export function ChatSheet({
     const body = text.trim();
     if (!body) return;
     setInput("");
-    const { data } = await supabase.rpc("send_message", { p_match: matchId, p_body: body });
+    const sent = await api
+      .post<{ id: number }>(`/api/matches/${matchId}/messages`, { body })
+      .catch(() => null);
     // Optimistic append in case realtime lags
-    if (data) {
+    if (sent) {
       setMsgs((m) =>
-        m.some((x) => x.id === data)
+        m.some((x) => x.id === sent.id)
           ? m
           : [
               ...m,
               {
-                id: data,
+                id: sent.id,
                 match_id: matchId,
                 sender_id: meId,
                 body,

@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { api } from "@/lib/api";
 import type { Profile } from "@/lib/domain";
 import { initials } from "@/lib/domain";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -63,7 +64,7 @@ export function AppShell({
 
   const switchRole = async () => {
     const next = isEmployer ? "worker" : "employer";
-    await supabaseBrowser().rpc("set_active_role", { p_role: next });
+    await api.post("/api/profile/role", { role: next });
     setDrawer(false);
     router.push(next === "employer" ? "/business" : "/");
     router.refresh();

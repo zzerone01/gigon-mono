@@ -21,6 +21,7 @@ import {
   type Match,
   type Profile,
 } from "@/lib/domain";
+import { api } from "@/lib/api";
 import { MACTAN_CENTER, distanceMeters, formatDistance } from "@/lib/geo";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
@@ -193,26 +194,36 @@ export function BusinessApp({ profile }: { profile: Profile }) {
     if (!confirmApp) return;
     const app = confirmApp;
     setConfirmApp(null);
-    const { error } = await supabase.rpc("select_applicant", { p_application: app.id });
-    if (error) return toast("Couldn't match", error.message);
+    try {
+      await api.post(`/api/applications/${app.id}/select`);
+    } catch (error) {
+      return toast("Couldn't match", (error as Error).message);
+    }
     toast("Matched — the gig is on", "billable_event logged · ₱0 during pilot");
     loadAll();
   };
 
   const issuePin = async () => {
     if (!match) return;
-    const { data, error } = await supabase.rpc("issue_pin", { p_match: match.id });
-    if (error) return toast("Couldn't issue PIN", error.message);
-    setPinDigits(data ?? null);
-    toast(`PIN issued · ${(data ?? "").split("").join(" ")}`, "One-time · valid 24 h · tell it to your worker");
+    let pin: string;
+    try {
+      ({ pin } = await api.post<{ pin: string }>(`/api/matches/${match.id}/pin`));
+    } catch (error) {
+      return toast("Couldn't issue PIN", (error as Error).message);
+    }
+    setPinDigits(pin);
+    toast(`PIN issued · ${pin.split("").join(" ")}`, "One-time · valid 24 h · tell it to your worker");
     loadAll();
   };
 
   const reportNoShow = async () => {
     if (!match) return;
     setNoShowOpen(false);
-    const { error } = await supabase.rpc("report_no_show", { p_match: match.id });
-    if (error) return toast("Couldn't record no-show", error.message);
+    try {
+      await api.post(`/api/matches/${match.id}/no-show`);
+    } catch (error) {
+      return toast("Couldn't record no-show", (error as Error).message);
+    }
     toast("No-show recorded", "Logged on the worker's profile · slot reopened for other applicants");
     setPinDigits(null);
     loadAll();
@@ -220,12 +231,13 @@ export function BusinessApp({ profile }: { profile: Profile }) {
 
   const cancelMatch = async (reason: string) => {
     if (!match) return;
-    const { error } = await supabase.rpc("cancel_match", {
-      p_match: match.id,
-      p_reason: reason,
-    });
+    try {
+      await api.post(`/api/matches/${match.id}/cancel`, { reason });
+    } catch (error) {
+      setCancelMatchOpen(false);
+      return toast("Couldn't cancel", (error as Error).message);
+    }
     setCancelMatchOpen(false);
-    if (error) return toast("Couldn't cancel", error.message);
     toast("Gig cancelled", `${firstName(match.worker.full_name)} was notified · posting closed`);
     setPinDigits(null);
     loadAll();
@@ -233,26 +245,23 @@ export function BusinessApp({ profile }: { profile: Profile }) {
 
   const cancelGig = async (reason: string) => {
     if (!gig) return;
-    const { error } = await supabase.rpc("cancel_gig", {
-      p_gig: gig.id,
-      p_reason: reason,
-    });
+    try {
+      await api.post(`/api/gigs/${gig.id}/cancel`, { reason });
+    } catch (error) {
+      setCancelGigOpen(false);
+      return toast("Couldn't cancel the posting", (error as Error).message);
+    }
     setCancelGigOpen(false);
-    if (error) return toast("Couldn't cancel the posting", error.message);
     toast("Posting cancelled", "Applicants were released — post again anytime");
     loadAll();
   };
 
   const submitReview = async (stars: number, tags: string[], comment: string) => {
     if (!match) return;
-    const { error } = await supabase.rpc("post_review", {
-      p_match: match.id,
-      p_stars: stars,
-      p_tags: tags,
-      p_comment: comment,
-    });
-    if (error) {
-      toast("Couldn't post review", error.message);
+    try {
+      await api.post(`/api/matches/${match.id}/review`, { stars, tags, comment });
+    } catch (error) {
+      toast("Couldn't post review", (error as Error).message);
       return;
     }
     setRateOpen(false);
@@ -784,7 +793,6 @@ function PostGigSheet({
   onPosted: () => void;
   onClose: () => void;
 }) {
-  const supabase = supabaseBrowser();
   const [type, setType] = useState<(typeof GIG_TYPES)[number]>("Cleaning");
   const [title, setTitle] = useState("Afternoon café deep clean");
   const [when, setWhen] = useState("Today");
@@ -806,23 +814,25 @@ function PostGigSheet({
     }
     setBusy(true);
     setError("");
-    const { error: err } = await supabase.rpc("post_gig", {
-      p_title: title.trim(),
-      p_type: type,
-      p_description: desc,
-      p_pay: payNum,
-      p_duration: dur,
-      p_when_label: `${when} · ${time}`,
-      p_area: profile.area ?? "Mactan",
-      p_lat: profile.lat ?? MACTAN_CENTER.lat,
-      p_lng: profile.lng ?? MACTAN_CENTER.lng,
-      p_slots: slots,
-    });
-    setBusy(false);
-    if (err) {
-      setError(err.message);
+    try {
+      await api.post("/api/gigs", {
+        title: title.trim(),
+        type,
+        description: desc,
+        pay: payNum,
+        duration: dur,
+        whenLabel: `${when} · ${time}`,
+        area: profile.area ?? "Mactan",
+        lat: profile.lat ?? MACTAN_CENTER.lat,
+        lng: profile.lng ?? MACTAN_CENTER.lng,
+        slots,
+      });
+    } catch (err) {
+      setBusy(false);
+      setError((err as Error).message);
       return;
     }
+    setBusy(false);
     onPosted();
   };
 

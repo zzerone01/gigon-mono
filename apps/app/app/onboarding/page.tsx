@@ -4,8 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Icon } from "@/components/icons";
+import { api } from "@/lib/api";
 import { MACTAN_CENTER } from "@/lib/geo";
-import { supabaseBrowser } from "@/lib/supabase/client";
 
 type Role = "worker" | "employer";
 
@@ -25,14 +25,15 @@ export default function OnboardingPage() {
     }
     setBusy(true);
     setError("");
-    const supabase = supabaseBrowser();
 
     if (role === "employer") {
-      const { data: ok, error: err } = await supabase.rpc("redeem_invite", {
-        p_code: invite,
-        p_business_name: businessName || name,
-      });
-      if (err || !ok) {
+      const redeemed = await api
+        .post<{ ok: boolean }>("/api/invites/redeem", {
+          code: invite,
+          businessName: businessName || name,
+        })
+        .catch(() => ({ ok: false }));
+      if (!redeemed.ok) {
         setBusy(false);
         setError("That invite code isn't valid. Pilot businesses are invite-only.");
         return;
@@ -57,18 +58,20 @@ export default function OnboardingPage() {
       );
     });
 
-    const { error: err2 } = await supabase.rpc("complete_onboarding", {
-      p_name: name,
-      p_role: role,
-      p_area: "Mactan",
-      p_lat: coords.lat,
-      p_lng: coords.lng,
-    });
-    setBusy(false);
-    if (err2) {
-      setError(err2.message);
+    try {
+      await api.post("/api/onboarding", {
+        name,
+        role,
+        area: "Mactan",
+        lat: coords.lat,
+        lng: coords.lng,
+      });
+    } catch (err2) {
+      setBusy(false);
+      setError((err2 as Error).message);
       return;
     }
+    setBusy(false);
     router.replace(role === "employer" ? "/business" : "/");
     router.refresh();
   };
