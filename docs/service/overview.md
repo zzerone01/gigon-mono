@@ -17,7 +17,7 @@ gigon-mono/ (turborepo + pnpm)
 │   ├── ui/         @repo/ui — shadcn 기반 공유 디자인 시스템 + 토큰 (docs/brand 참조)
 │   ├── supabase/   @repo/supabase — 생성된 DB 타입 + 클라이언트 팩토리
 │   └── …config
-└── supabase/     스키마·RPC·시드 (로컬 CLI + 클라우드 배포)                 ← docs/service/backend.md
+└── supabase/     스키마·시드 (로컬 CLI + 클라우드 배포; 쓰기는 apps/app/app/api) ← docs/service/backend.md
 ```
 
 ## 배포/인프라
@@ -34,8 +34,8 @@ gigon-mono/ (turborepo + pnpm)
 ## 인증/계정
 
 - **전화번호 + OTP** (Supabase Auth) — 웹/모바일이 같은 계정·세션 모델 공유
-- 계정 1개 = 활성 역할 1개(worker/employer), 역할 전환은 `set_active_role` RPC
-- 사장님은 파일럿 초대제: 초대코드(`invite_codes` 테이블, 현재 `MACTAN-30`) → `redeem_invite`
+- 계정 1개 = 활성 역할 1개(worker/employer), 역할 전환은 `POST /api/profile/role`
+- 사장님은 파일럿 초대제: 초대코드(`invite_codes` 테이블, 현재 `MACTAN-30`) → `POST /api/invites/redeem`
 - 테스트 번호(실 SMS 발송 없음): 09171234001~3 / OTP `123456`
   - 로컬: `supabase/config.toml` `[auth.sms.test_otp]`
   - 클라우드: 같은 파일을 `supabase config push`로 동기화 (Twilio는 현재 더미 값 —

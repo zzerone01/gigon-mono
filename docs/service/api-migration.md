@@ -1,5 +1,23 @@
 # API 마이그레이션 — Supabase RPC → Next.js Route Handlers
 
+> ## ✅ 완료 (2026-07-03)
+>
+> 이 계획은 전부 실행됐다. 결과:
+>
+> - 15개 엔드포인트 `apps/app/app/api/**` — vitest 통합 테스트 31케이스 그린
+>   (`pnpm --filter app test`, 로컬 스택 필요)
+> - 웹·모바일 클라이언트 전환 완료 — `supabase.rpc` 잔존은 `expire_stale_gigs` 4곳뿐
+> - `@repo/api` 공유 패키지(zod 스키마 + fetch 클라이언트) 생성
+> - Vercel gigon-app: DATABASE_URL(3개 env) 등록 + 프로덕션 배포.
+>   프로드 스모크: 미인증 401 JSON ✓ · post→apply→cancel 루프 ✓ · 비소유자 가드 409 ✓
+> - 락다운: `20260703090000_drop_rpc_layer.sql` 클라우드 적용 —
+>   `/rest/v1/rpc/apply_to_gig` 404 ✓ · `expire_stale_gigs` 200 ✓ · 타입 재생성 ✓
+> - Playwright 2-오리진 풀 루프(웹) ✓ — 취소 A 경로 포함
+> - ⚠️ 미완: **Expo Go 실기기 스모크** (기기 필요 — 로그인→지원→도착→PIN 1회 권장)
+> - DB 비밀번호는 이관 중 재설정됨 — `apps/app/.env.local` + Vercel env에 기록
+>
+> 이하 원문은 이행 스펙 기록용으로 보존.
+
 > **오너 결정 (2026-07-03): 출시 전에 쓰기 경로를 SQL RPC에서 Next.js Route Handlers(TS)로 이관한다.**
 > 이유: 비즈니스 로직을 TypeScript로(디버깅·Sentry·단위테스트·로직 이력 관리),
 > 추후 side effect(푸시·과금·외부 API)를 넣을 자리 확보, SQL/PLpgSQL 유지보수 부담 제거.
@@ -367,9 +385,9 @@ notify pgrst, 'reload schema';
 
 ## 10. 완료 기준
 
-- [ ] 15개 엔드포인트가 §4 스펙과 동일 동작 (통합 테스트 그린)
-- [ ] 웹·모바일에서 `supabase.rpc` 호출은 `expire_stale_gigs` 4곳만 남음
-- [ ] Playwright 풀 루프 + 모바일 스모크 통과
-- [ ] 클라우드에 락다운 마이그레이션 적용, `/rest/v1/rpc/apply_to_gig` 404
-- [ ] `@repo/supabase` 타입 재생성 & 전체 빌드 그린
-- [ ] 문서 갱신 (backend.md 재작성, STATUS.md, daily log, 이 문서 완료 표기)
+- [x] 15개 엔드포인트가 §4 스펙과 동일 동작 (통합 테스트 그린)
+- [x] 웹·모바일에서 `supabase.rpc` 호출은 `expire_stale_gigs` 4곳만 남음
+- [x] Playwright 풀 루프 통과 · 모바일은 tsc+expo export만 (⚠️ Expo Go 실기기 스모크 잔여)
+- [x] 클라우드에 락다운 마이그레이션 적용, `/rest/v1/rpc/apply_to_gig` 404
+- [x] `@repo/supabase` 타입 재생성 & 전체 빌드 그린
+- [x] 문서 갱신 (backend.md 재작성, STATUS.md, daily log, 이 문서 완료 표기)

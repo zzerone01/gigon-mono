@@ -48,9 +48,10 @@ components/
 ## 데이터 패턴
 
 - 클라이언트 컴포넌트가 직접 select(+조인 `profiles!fk`) — RLS는 authenticated 전체 읽기
-- 쓰기는 전부 `supabase.rpc(...)`. 취소: 워커 상태 스트립(MATCHED)·비즈니스 콘솔에
-  Cancel 링크 → `cancel_match`/`cancel_gig`
-- `loadAll()` 첫 줄에서 `expire_stale_gigs` 호출(만료 공고 스윕)
+- 쓰기는 전부 `api.post("/api/…")` (`lib/api.ts` 싱글턴 — @repo/api 클라이언트,
+  same-origin + Bearer). 취소: 워커 상태 스트립(MATCHED)·비즈니스 콘솔에
+  Cancel 링크 → `/api/matches/:id/cancel` / `/api/gigs/:id/cancel`
+- `loadAll()` 첫 줄에서 `expire_stale_gigs` 호출(만료 공고 스윕 — 유일하게 남은 rpc)
 - realtime: `postgres_changes` 구독 → 토스트 + `loadAll()` refetch (coarse)
 - 거리: 클라이언트 하버사인 계산·정렬
 

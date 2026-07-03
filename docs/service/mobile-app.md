@@ -30,12 +30,13 @@ src/lib/geo.ts         거리 계산/포맷 (웹과 동일)
 src/data/mock.ts       ⚠ 이름과 달리 mock 아님 — 뷰모델 타입 + 상수 + mapGig/mapApplicant 매퍼
 src/store/gig-store.ts 단일 zustand store:
    · 세션/프로필 (boot, sendOtp, verifyOtp, completeOnboarding, switchRole, signOut)
-   · 워커: feed(뷰모델)·applied·wStatus·hist / apply·arrive·enterPinDigit(→verify_pin RPC,
-     서버 잠금 반영)·submitRate·fileDispute·cancelActiveMatch(MATCHED 취소)
+   · 워커: feed(뷰모델)·applied·wStatus·hist / apply·arrive·enterPinDigit(→
+     /api/…/pin/verify, 서버 잠금 반영)·submitRate·fileDispute·cancelActiveMatch(MATCHED 취소)
    · 사장님: posting VM·apps(지원자 VM)·eStatus·pinDigits(발급 응답 평문) /
      postGig·confirmMatch·issuePin·reportNoShow·submitERate·cancelActiveMatch·cancelPosting
      (취소 시트: sheet = "cancel" | "cancelPost", 로드 시 expire_stale_gigs 스윕)
-   · chatMsgs + sendChat(RPC) · 토스트/시트
+   · chatMsgs + sendChat(/api/…/messages) · 토스트/시트 — 쓰기는 전부
+     `src/lib/api.ts`(@repo/api, Bearer → app.gigon.io; EXPO_PUBLIC_API_URL로 오버라이드)
    · realtime: gigs/matches/applications/messages 구독 → 토스트 + reload
    · gigById()/applicantById() — 화면들이 쓰는 뷰모델 조회 (store에서 export)
 ```
