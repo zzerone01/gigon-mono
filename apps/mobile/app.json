@@ -52,15 +52,15 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "5fae70af-acf1-402c-8d34-0853eabdc839"
+        "projectId": "062f07e0-20ae-4e56-b218-0305198a8dd3"
       }
     },
-    "owner": "zeronej",
+    "owner": "gigon",
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/5fae70af-acf1-402c-8d34-0853eabdc839"
+      "url": "https://u.expo.dev/062f07e0-20ae-4e56-b218-0305198a8dd3"
     }
   }
 }
