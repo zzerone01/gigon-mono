@@ -1,5 +1,9 @@
 # 백엔드 (Supabase)
 
+> ⚠️ **마이그레이션 예정 (오너 결정 2026-07-03)**: 아래 쓰기 RPC 15개는
+> **Next.js Route Handlers로 이관** 예정 — 실행 스펙은 [api-migration.md](./api-migration.md).
+> 이관 완료 전까지는 이 문서가 현행. 새 쓰기 기능은 RPC로 추가하지 말고 이관 계획에 합류시킬 것.
+
 위치: 레포 루트 `supabase/` — config.toml, `migrations/`, `seed.sql`
 
 ## 스키마 (PRD §4.1 상태머신)
