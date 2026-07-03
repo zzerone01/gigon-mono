@@ -90,8 +90,13 @@ export function ChatSheet({
   };
 
   return (
-    <Sheet onClose={onClose} z={44} maxHeight="78%">
-      <div className="flex h-[78dvh] max-h-[640px] flex-col overflow-hidden rounded-t-[18px]">
+    <div className="fixed inset-0 z-44 flex flex-col justify-end md:inset-auto md:bottom-5 md:right-5 md:block">
+      <button
+        aria-label="Close"
+        onClick={onClose}
+        className="anim-fade absolute inset-0 cursor-pointer bg-[rgba(15,27,46,0.45)] md:hidden"
+      />
+      <div className="anim-sheet relative flex h-[78dvh] max-h-[640px] flex-col overflow-hidden rounded-t-[18px] bg-white shadow-[0_-12px_40px_rgba(15,27,46,0.25)] md:anim-modal md:h-[540px] md:w-[380px] md:rounded-[18px] md:shadow-[0_24px_64px_rgba(15,27,46,0.35)]">
         <div className="flex shrink-0 items-center gap-2.5 bg-royal px-4 py-3">
           <span className="flex size-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white/15 text-xs font-bold text-white">
             {initialsLabel}
@@ -168,7 +173,7 @@ export function ChatSheet({
           </button>
         </div>
       </div>
-    </Sheet>
+    </div>
   );
 }
 

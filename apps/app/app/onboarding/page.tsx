@@ -40,11 +40,19 @@ export default function OnboardingPage() {
     }
 
     // Best-effort browser geolocation; falls back to the pilot-zone center.
+    // The outer timer also covers a permission prompt that's never answered.
     const coords = await new Promise<{ lat: number; lng: number }>((resolve) => {
       if (!navigator.geolocation) return resolve(MACTAN_CENTER);
+      const fallback = setTimeout(() => resolve(MACTAN_CENTER), 8000);
       navigator.geolocation.getCurrentPosition(
-        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => resolve(MACTAN_CENTER),
+        (pos) => {
+          clearTimeout(fallback);
+          resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        () => {
+          clearTimeout(fallback);
+          resolve(MACTAN_CENTER);
+        },
         { timeout: 4000 },
       );
     });

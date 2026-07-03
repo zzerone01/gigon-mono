@@ -47,6 +47,7 @@ export function AppShell({
   const router = useRouter();
   const [drawer, setDrawer] = useState(false);
   const [banner, setBanner] = useState(true);
+  const [acctMenu, setAcctMenu] = useState(false);
   const [toast, setToast] = useState<ToastData | null>(null);
   const toastSeq = useRef(0);
 
@@ -78,10 +79,10 @@ export function AppShell({
     <ToastContext.Provider value={showToast}>
       {/* app frame: mobile-first, centered column on desktop until the
           desktop split-view design lands */}
-      <div className="relative mx-auto flex h-dvh max-w-md flex-col overflow-hidden bg-white shadow-[0_0_60px_rgba(15,27,46,0.08)]">
+      <div className="relative mx-auto flex h-dvh max-w-md flex-col overflow-hidden bg-white shadow-[0_0_60px_rgba(15,27,46,0.08)] md:max-w-none md:shadow-none">
         {/* get-the-app smart banner */}
         {banner && (
-          <div className="flex shrink-0 items-center gap-2.5 bg-royal-dark px-3 py-[9px]">
+          <div className="flex shrink-0 items-center gap-2.5 bg-royal-dark px-3 py-[9px] md:hidden">
             <button
               aria-label="Dismiss"
               onClick={() => setBanner(false)}
@@ -102,8 +103,73 @@ export function AppShell({
           </div>
         )}
 
+        {/* desktop app bar (GigOn Web design) */}
+        <header className="z-20 hidden h-[60px] shrink-0 items-center gap-[18px] border-b border-line bg-white px-[22px] md:flex">
+          <div className="flex items-center gap-[9px]">
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-royal">
+              <Icon name="logo" size={15} color="#fff" strokeWidth={2.4} />
+            </span>
+            <span className="font-display text-[19px] font-bold tracking-tight">GigOn</span>
+            {isEmployer && (
+              <span className="rounded-full bg-tint px-[9px] py-[3px] text-[10px] font-semibold uppercase tracking-[0.06em] text-royal-dark">
+                Business
+              </span>
+            )}
+          </div>
+          <nav className="flex items-center gap-1">
+            <span className="flex h-9 items-center rounded-full bg-tint-soft px-3.5 text-[13px] font-semibold text-royal-dark">
+              {isEmployer ? "Your postings" : "Explore gigs"}
+            </span>
+            <span className="flex h-9 items-center rounded-full px-3.5 text-[13px] font-medium text-slate">
+              {isEmployer ? "History" : "My gigs"}
+            </span>
+          </nav>
+          <div className="flex-1" />
+          <span className="flex items-center gap-1.5 rounded-full bg-tint-soft px-[13px] py-[7px] text-xs font-semibold text-royal-dark">
+            <Icon name="mapPin" size={13} color="#103F96" strokeWidth={2.2} />
+            {profile.area ?? "Mactan"} · Zone 1
+          </span>
+          <button aria-label="Notifications" className="relative flex size-[38px] items-center justify-center text-slate">
+            <Icon name="bell" size={19} />
+            <span className="absolute right-[7px] top-1.5 size-[7px] rounded-full border-[1.5px] border-white bg-amber" />
+          </button>
+          <div className="relative">
+            <button
+              onClick={() => setAcctMenu((v) => !v)}
+              className="flex items-center gap-2 rounded-full border border-line py-1 pl-1 pr-2.5"
+            >
+              <Avatar name={initials(profile.full_name)} size={30} className="rounded-full bg-tint text-[11.5px] text-royal-dark" />
+              <span className="text-[12.5px] font-semibold">
+                {isEmployer ? (profile.business_name ?? profile.full_name) : profile.full_name}
+              </span>
+              <Icon name="chevronDown" size={13} color="#8A93A3" strokeWidth={2.4} />
+            </button>
+            {acctMenu && (
+              <div className="anim-fade absolute right-0 top-11 z-50 flex w-56 flex-col overflow-hidden rounded-[14px] border border-line bg-white py-1 shadow-[0_16px_48px_rgba(15,27,46,0.18)]">
+                <button
+                  onClick={() => {
+                    setAcctMenu(false);
+                    switchRole();
+                  }}
+                  className="flex items-center gap-2.5 px-4 py-2.5 text-left text-[13px] font-semibold text-royal hover:bg-tint-soft"
+                >
+                  <Icon name="switchArrows" size={15} />
+                  {isEmployer ? "Switch to worker mode" : "Switch to business mode"}
+                </button>
+                <button
+                  onClick={signOut}
+                  className="flex items-center gap-2.5 px-4 py-2.5 text-left text-[13px] font-medium text-slate hover:bg-tint-soft"
+                >
+                  <Icon name="x" size={13} />
+                  Sign out
+                </button>
+              </div>
+            )}
+          </div>
+        </header>
+
         {/* collapsed web header */}
-        <header className="z-20 flex h-[52px] shrink-0 items-center gap-2 border-b border-line bg-white pl-1 pr-2">
+        <header className="z-20 flex h-[52px] shrink-0 items-center gap-2 border-b border-line bg-white pl-1 pr-2 md:hidden">
           <button
             aria-label="Menu"
             onClick={() => setDrawer(true)}
@@ -218,7 +284,7 @@ export function AppShell({
               toast.onTap?.();
               setToast(null);
             }}
-            className="anim-toast absolute inset-x-3 top-14 z-55 flex items-start gap-[11px] rounded-[14px] bg-royal-dark px-3.5 py-3 text-left shadow-[0_10px_30px_rgba(15,27,46,0.35)]"
+            className="anim-toast absolute inset-x-3 top-14 z-55 flex items-start gap-[11px] rounded-[14px] bg-royal-dark px-3.5 py-3 text-left shadow-[0_10px_30px_rgba(15,27,46,0.35)] md:left-auto md:right-5 md:top-[72px] md:w-[380px]"
           >
             <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white/12">
               <Icon name="logo" size={15} color="#F5A623" strokeWidth={2.4} />

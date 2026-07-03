@@ -124,12 +124,17 @@ export function MiniStepper({ codes, index }: { codes: string[]; index: number }
   );
 }
 
-/** Bottom-sheet scaffold: dim backdrop + slide-up panel (gigSheet). */
+/**
+ * Overlay scaffold. Mobile: bottom sheet (gigSheet). Desktop (≥768px), per
+ * the "GigOn Web" design: `desktop="panel"` becomes a right slide-over,
+ * `desktop="modal"` a centered dialog.
+ */
 export function Sheet({
   onClose,
   children,
   maxHeight = "88%",
   floating = false,
+  desktop = "modal",
   z = 40,
 }: {
   onClose: () => void;
@@ -137,10 +142,17 @@ export function Sheet({
   maxHeight?: string;
   /** Floating card (match/no-show confirms) instead of docked sheet. */
   floating?: boolean;
+  desktop?: "panel" | "modal";
   z?: number;
 }) {
+  const isPanel = desktop === "panel";
   return (
-    <div className="absolute inset-0 flex flex-col justify-end" style={{ zIndex: z }}>
+    <div
+      className={`fixed inset-0 flex flex-col justify-end ${
+        isPanel ? "md:flex-row md:items-stretch md:justify-end" : "md:items-center md:justify-center"
+      }`}
+      style={{ zIndex: z }}
+    >
       <button
         aria-label="Close"
         onClick={onClose}
@@ -149,10 +161,12 @@ export function Sheet({
       <div
         className={
           floating
-            ? "anim-sheet relative mx-3 mb-3.5 flex flex-col gap-3 rounded-[18px] bg-white p-[18px] shadow-[0_24px_48px_rgba(15,27,46,0.3)]"
-            : "anim-sheet relative flex flex-col rounded-t-[18px] bg-white shadow-[0_-12px_40px_rgba(15,27,46,0.25)]"
+            ? "anim-sheet relative mx-3 mb-3.5 flex flex-col gap-3 rounded-[18px] bg-white p-[18px] shadow-[0_24px_48px_rgba(15,27,46,0.3)] md:anim-modal md:m-0 md:w-[420px]"
+            : isPanel
+              ? "anim-sheet relative flex max-h-(--sheet-max) flex-col rounded-t-[18px] bg-white shadow-[0_-12px_40px_rgba(15,27,46,0.25)] md:anim-panel md:h-full md:max-h-none md:w-[452px] md:rounded-none md:shadow-[-16px_0_48px_rgba(15,27,46,0.25)]"
+              : "anim-sheet relative flex max-h-(--sheet-max) flex-col rounded-t-[18px] bg-white shadow-[0_-12px_40px_rgba(15,27,46,0.25)] md:anim-modal md:max-h-[86vh] md:w-[440px] md:rounded-[18px] md:shadow-[0_24px_64px_rgba(15,27,46,0.35)]"
         }
-        style={floating ? undefined : { maxHeight }}
+        style={floating ? undefined : ({ "--sheet-max": maxHeight } as React.CSSProperties)}
       >
         {children}
       </div>

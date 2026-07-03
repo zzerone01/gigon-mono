@@ -133,6 +133,26 @@ body {
     opacity: 1;
   }
 }
+@keyframes gigPanel {
+  from {
+    transform: translateX(60px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes gigModal {
+  from {
+    transform: translateY(24px) scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
 
 @layer utilities {
   .anim-toast {
@@ -161,5 +181,11 @@ body {
   }
   .anim-blink {
     animation: gigBlink 1.6s ease infinite;
+  }
+  .anim-panel {
+    animation: gigPanel 0.28s ease both;
+  }
+  .anim-modal {
+    animation: gigModal 0.24s ease both;
   }
 }

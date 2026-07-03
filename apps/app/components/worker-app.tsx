@@ -322,17 +322,29 @@ export function WorkerApp({ profile }: { profile: Profile }) {
         </div>
       )}
 
-      {/* filters */}
-      <div className="flex shrink-0 gap-1.5 overflow-x-auto border-b border-line bg-white px-3.5 pb-2.5 pt-[9px]">
-        {FILTERS.map((f) => (
-          <Chip key={f} label={f} active={filter === f} onClick={() => setFilter(f)} />
-        ))}
-      </div>
+      {/* split view: list pane (mobile full-width) + map pane (desktop) */}
+      <div className="relative flex min-h-0 flex-1">
+        <div
+          className={`${view === "map" ? "hidden" : "flex"} w-full flex-col md:flex md:w-[442px] md:shrink-0 md:border-r md:border-line`}
+        >
+          {/* desktop pane header */}
+          <div className="hidden shrink-0 items-baseline justify-between px-4 pb-0 pt-3.5 md:flex">
+            <span className="font-display text-lg font-semibold tracking-tight">Gigs near you</span>
+            <span className="flex items-center gap-1.5 text-[11.5px] text-slate">
+              <LiveDot />
+              {feed.length} open now
+            </span>
+          </div>
 
-      {/* body */}
-      <div className="relative min-h-0 flex-1 bg-bg-soft">
-        {view === "list" ? (
-          <div className="absolute inset-0 flex flex-col gap-2 overflow-y-auto px-3 pb-24 pt-2.5">
+          {/* filters */}
+          <div className="flex shrink-0 gap-1.5 overflow-x-auto border-b border-line bg-white px-3.5 pb-2.5 pt-[9px] md:flex-wrap md:px-4">
+            {FILTERS.map((f) => (
+              <Chip key={f} label={f} active={filter === f} onClick={() => setFilter(f)} />
+            ))}
+          </div>
+
+          <div className="relative min-h-0 flex-1 bg-bg-soft">
+            <div className="absolute inset-0 flex flex-col gap-2 overflow-y-auto px-3 pb-24 pt-2.5 md:pb-4">
             <div className="flex items-center justify-between px-1 py-0.5 text-[11px] text-ink-muted">
               <span className="flex items-center gap-1.5 whitespace-nowrap">
                 <LiveDot />
@@ -344,7 +356,7 @@ export function WorkerApp({ profile }: { profile: Profile }) {
               <button
                 key={g.id}
                 onClick={() => setDetail(g)}
-                className="flex w-full items-start gap-3 rounded-[14px] border border-line bg-white p-3 px-[13px] text-left shadow-[0_1px_2px_rgba(15,27,46,0.04),0_8px_24px_rgba(15,27,46,0.06)]"
+                className="flex w-full items-start gap-3 rounded-[14px] border-[1.5px] border-line bg-white p-3 px-[13px] text-left shadow-[0_1px_2px_rgba(15,27,46,0.04),0_8px_24px_rgba(15,27,46,0.06)] transition-colors hover:border-royal"
               >
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-tint text-royal">
                   <Icon name={GIG_TYPE_ICON[g.type] ?? "briefcase"} size={20} strokeWidth={1.8} />
@@ -388,22 +400,24 @@ export function WorkerApp({ profile }: { profile: Profile }) {
               </span>
             </div>
           </div>
-        ) : (
-          <>
-            <MapView gigs={feed} you={you} appliedIds={appliedIds} onOpen={setDetail} />
-            <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full border border-line bg-white px-[13px] py-[7px] text-[11.5px] font-semibold shadow-[0_8px_24px_rgba(15,27,46,0.06)]">
-              <LiveDot />
-              {feed.length} gigs open now
-            </div>
-            <div className="absolute right-3 top-3 rounded-full border border-line bg-white px-3 py-[7px] text-[10.5px] font-medium text-slate shadow-[0_8px_24px_rgba(15,27,46,0.06)]">
-              Pilot zone · 2–3 km
-            </div>
-          </>
-        )}
+          </div>
+        </div>
+
+        {/* map pane — always on desktop, toggled on mobile */}
+        <div className={`relative min-h-0 flex-1 bg-tint-soft ${view === "map" ? "block" : "hidden"} md:block`}>
+          <MapView gigs={feed} you={you} appliedIds={appliedIds} onOpen={setDetail} />
+          <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full border border-line bg-white px-[13px] py-[7px] text-[11.5px] font-semibold shadow-[0_8px_24px_rgba(15,27,46,0.06)] md:left-4 md:top-3.5">
+            <LiveDot />
+            {feed.length} gigs open now
+          </div>
+          <div className="absolute right-3 top-3 rounded-full border border-line bg-white px-3 py-[7px] text-[10.5px] font-medium text-slate shadow-[0_8px_24px_rgba(15,27,46,0.06)] md:right-4 md:top-3.5">
+            Pilot zone · 2–3 km
+          </div>
+        </div>
 
         <button
           onClick={() => setView(view === "list" ? "map" : "list")}
-          className="absolute bottom-5 left-1/2 z-12 flex h-[42px] -translate-x-1/2 items-center gap-2 rounded-full bg-ink px-[19px] text-[13px] font-semibold text-white shadow-[0_6px_18px_rgba(15,27,46,0.3)]"
+          className="absolute bottom-5 left-1/2 z-12 flex h-[42px] -translate-x-1/2 items-center gap-2 rounded-full bg-ink px-[19px] text-[13px] font-semibold text-white shadow-[0_6px_18px_rgba(15,27,46,0.3)] md:hidden"
         >
           <Icon name={view === "list" ? "map" : "list"} size={15} />
           {view === "list" ? "Map" : "List"}
@@ -497,7 +511,7 @@ function GigDetailSheet({
     year: "numeric",
   });
   return (
-    <Sheet onClose={onClose} maxHeight="86%">
+    <Sheet onClose={onClose} maxHeight="86%" desktop="panel">
       <div className="flex shrink-0 items-center justify-center pb-0.5 pt-[9px]">
         <div className="h-1 w-10 rounded-full bg-line" />
       </div>
