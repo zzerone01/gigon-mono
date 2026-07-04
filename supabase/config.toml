@@ -270,6 +270,9 @@ max_frequency = "5s"
 639171234001 = "123456"
 639171234002 = "123456"
 639171234003 = "123456"
+# 004/005 are reserved for account-delete.test.ts (the accounts get deleted).
+639171234004 = "123456"
+639171234005 = "123456"
 # [auth.sms.test_otp]
 # 4152127777 = "123456"
 

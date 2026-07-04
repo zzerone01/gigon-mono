@@ -128,6 +128,8 @@ interface GigState {
   completeOnboarding: (coords: { lat: number; lng: number } | null) => Promise<string | null>;
   switchRole: () => Promise<Role>;
   signOut: () => Promise<void>;
+  /** Permanently delete the account server-side, then clear local state. */
+  deleteAccount: () => Promise<string | null>;
 
   showToast: (title: string, body: string, route?: string) => void;
   dismissToast: () => void;
@@ -512,6 +514,26 @@ export const useGigStore = create<GigState>((set, get) => ({
     applicantIndex = {};
     wMatchId = wMatchGig = eGigId = eMatchId = matchedApplicant = null as never;
     set({ userId: null, profile: null, role: "worker", phone: "", ...initialFlow });
+  },
+
+  deleteAccount: async () => {
+    try {
+      await api.post("/api/account/delete");
+    } catch (error) {
+      return (error as Error).message;
+    }
+    // Server already removed the account and its push tokens — a global
+    // sign-out would 401, so only clear the local session and state.
+    await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+    if (feedChannel) supabase.removeChannel(feedChannel);
+    if (chatChannel) supabase.removeChannel(chatChannel);
+    feedChannel = chatChannel = null;
+    chatChannelMatch = null;
+    gigIndex = {};
+    applicantIndex = {};
+    wMatchId = wMatchGig = eGigId = eMatchId = matchedApplicant = null as never;
+    set({ userId: null, profile: null, role: "worker", phone: "", ...initialFlow });
+    return null;
   },
 
   /* ------------------------------ toast/sheet ----------------------------- */

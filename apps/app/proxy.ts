@@ -30,7 +30,11 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthPage = pathname.startsWith("/login");
   const isPublic =
-    isAuthPage || pathname.startsWith("/terms") || pathname.startsWith("/privacy");
+    isAuthPage ||
+    pathname.startsWith("/terms") ||
+    pathname.startsWith("/privacy") ||
+    // Play Console "Delete account URL" — must work without a session.
+    pathname.startsWith("/account/delete");
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();

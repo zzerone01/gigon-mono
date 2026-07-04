@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { initials, ratingLabel } from "../data/mock";
@@ -25,6 +25,7 @@ export function ProfileTab() {
   const profile = useGigStore((s) => s.profile);
   const doSwitchRole = useGigStore((s) => s.switchRole);
   const doSignOut = useGigStore((s) => s.signOut);
+  const doDeleteAccount = useGigStore((s) => s.deleteAccount);
   const isWorker = role === "worker";
 
   const displayName = isWorker
@@ -44,6 +45,28 @@ export function ProfileTab() {
   const signOut = async () => {
     await doSignOut();
     router.replace("/onboarding/phone");
+  };
+
+  const deleteAccount = () => {
+    Alert.alert(
+      "Delete your account?",
+      "This permanently deletes your profile, gigs, applications, matches, chats, and reviews. It can't be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            const error = await doDeleteAccount();
+            if (error) {
+              Alert.alert("Couldn't delete account", error);
+              return;
+            }
+            router.replace("/onboarding/phone");
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -154,6 +177,9 @@ export function ProfileTab() {
 
         <Press style={{ padding: 8, alignSelf: "center" }} onPress={signOut} haptic={false}>
           <Text style={styles.signOut}>Sign out</Text>
+        </Press>
+        <Press style={{ padding: 8, alignSelf: "center" }} onPress={deleteAccount} haptic={false}>
+          <Text style={styles.deleteAccount}>Delete account</Text>
         </Press>
       </ScrollView>
     </View>
@@ -321,5 +347,10 @@ const styles = StyleSheet.create({
     fontFamily: font.sans,
     fontSize: 12.5,
     color: palette.muted,
+  },
+  deleteAccount: {
+    fontFamily: font.sans,
+    fontSize: 12.5,
+    color: palette.red,
   },
 });

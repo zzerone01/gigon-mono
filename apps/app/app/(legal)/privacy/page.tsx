@@ -63,12 +63,20 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
-      <Section title="5. Retention">
+      <Section title="5. Retention and account deletion">
         <p>
           We keep account and activity data while your account is active and as long as needed
-          for dispute resolution and audit integrity. If you delete your account, we remove or
-          anonymize personal data within 30 days, except records we must keep for legal or
-          safety reasons.
+          for dispute resolution and audit integrity. You can delete your account at any time —
+          in the app (<b>Profile → Delete account</b>) or at{" "}
+          <a
+            href="/account/delete"
+            className="font-semibold text-royal underline underline-offset-2"
+          >
+            app.gigon.io/account/delete
+          </a>
+          . Your profile and activity data are removed immediately, encrypted backups expire
+          within 30 days, and we keep only anonymized records required for legal or safety
+          reasons.
         </p>
       </Section>
 
