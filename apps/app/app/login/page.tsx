@@ -73,7 +73,7 @@ export default function LoginPage() {
           </h1>
           <p className="font-display text-[17px] font-semibold text-royal">Your gig is on.</p>
           <p className="max-w-[30ch] text-[13.5px] leading-relaxed text-slate">
-            Short, local gigs matched with trusted people nearby — in Mactan.
+            Short, local gigs matched with trusted people nearby — in the Philippines.
           </p>
         </div>
 

@@ -68,7 +68,7 @@ export default function LocationScreen() {
             <View style={styles.youDot} />
           </View>
           <View style={styles.zoneChip}>
-            <Text style={styles.zoneChipText}>Mactan · pilot zone · 2–3 km</Text>
+            <Text style={styles.zoneChipText}>Your area · pilot zone · 2–3 km</Text>
           </View>
         </View>
         <View style={styles.privacyRow}>

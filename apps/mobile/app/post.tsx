@@ -16,7 +16,7 @@ export default function PostGigScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const s = useGigStore();
-  const bizLabel = `${s.profile?.business_name ?? "Your business"} · ${s.profile?.area ?? "Mactan"}`;
+  const bizLabel = `${s.profile?.business_name ?? "Your business"} · ${s.profile?.area ?? "Philippines"}`;
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>

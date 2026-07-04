@@ -42,7 +42,7 @@ export default function PhoneScreen() {
           <Text style={styles.wordmark}>GigOn</Text>
           <Text style={styles.tagline}>Your gig is on.</Text>
           <Text style={styles.subtitle}>
-            Short, local gigs matched with trusted people nearby — in Mactan.
+            Short, local gigs matched with trusted people nearby — in the Philippines.
           </Text>
         </View>
         <View style={{ gap: 7, marginTop: 8 }}>

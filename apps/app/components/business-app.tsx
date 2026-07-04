@@ -454,7 +454,7 @@ export function BusinessApp({ profile }: { profile: Profile }) {
                               </div>
                               <div className="text-[11px] text-ink-muted">
                                 {w.skills.length ? w.skills.join(" · ") : "General"} ·{" "}
-                                {w.area ?? "Mactan"}
+                                {w.area ?? "Philippines"}
                               </div>
                             </div>
                           </div>
@@ -822,7 +822,7 @@ function PostGigSheet({
         pay: payNum,
         duration: dur,
         whenLabel: `${when} · ${time}`,
-        area: profile.area ?? "Mactan",
+        area: profile.area ?? "Philippines",
         lat: profile.lat ?? MACTAN_CENTER.lat,
         lng: profile.lng ?? MACTAN_CENTER.lng,
         slots,
@@ -951,7 +951,7 @@ function PostGigSheet({
               </span>
             </div>
             <div className="absolute bottom-2 left-[9px] rounded-full border border-line bg-white px-2.5 py-[3px] text-[10px] font-semibold text-royal-dark">
-              {profile.business_name ?? "Your business"} · {profile.area ?? "Mactan"}
+              {profile.business_name ?? "Your business"} · {profile.area ?? "Philippines"}
             </div>
           </div>
         </div>

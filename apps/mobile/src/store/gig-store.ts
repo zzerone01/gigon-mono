@@ -484,7 +484,7 @@ export const useGigStore = create<GigState>((set, get) => ({
       await api.post("/api/onboarding", {
         name: st.onbName,
         role: st.onbRole,
-        area: "Mactan",
+        area: "Philippines",
         lat: c.lat,
         lng: c.lng,
       });
@@ -946,7 +946,7 @@ export const useGigStore = create<GigState>((set, get) => ({
         pay: payNum,
         duration: st.pfDur,
         whenLabel: `${st.pfWhen} · ${st.pfTime}`,
-        area: p?.area ?? "Mactan",
+        area: p?.area ?? "Philippines",
         lat: p?.lat ?? MACTAN_CENTER.lat,
         lng: p?.lng ?? MACTAN_CENTER.lng,
         slots: st.pfSlots,

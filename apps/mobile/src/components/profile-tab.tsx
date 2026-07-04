@@ -91,7 +91,7 @@ export function ProfileTab() {
               )}
             </View>
             <Text style={styles.profileSub}>
-              {isWorker ? "Worker" : "Business"} · {profile?.area ?? "Mactan"} · joined {joined}
+              {isWorker ? "Worker" : "Business"} · {profile?.area ?? "Philippines"} · joined {joined}
             </Text>
           </View>
         </View>
@@ -137,7 +137,7 @@ export function ProfileTab() {
             <SectionLabel>Business</SectionLabel>
             <View style={styles.infoRow}>
               <Icon name="mapPin" size={15} color={palette.slate} />
-              <Text style={styles.infoRowText}>{profile?.area ?? "Mactan"}, Lapu-Lapu City · pilot zone 1</Text>
+              <Text style={styles.infoRowText}>{profile?.area ?? "Philippines"} · pilot zone 1</Text>
             </View>
             <View style={styles.infoRow}>
               <Icon name="card" size={15} color={palette.slate} />

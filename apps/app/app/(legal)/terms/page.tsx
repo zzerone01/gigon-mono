@@ -24,7 +24,7 @@ export default function TermsPage() {
           GigOn (operated from gigon.io and app.gigon.io, &quot;GigOn&quot;, &quot;we&quot;) is a
           marketplace that connects local businesses posting short gigs (typically 1–3 hours)
           with nearby workers in the Philippines. GigOn is currently running as an{" "}
-          <b>invite-gated pilot</b> in Mactan / Lapu-Lapu City.
+          <b>invite-gated pilot</b> in the Philippines.
         </p>
         <p>
           GigOn is a <b>venue only</b>. We are not an employer, staffing agency, or payment

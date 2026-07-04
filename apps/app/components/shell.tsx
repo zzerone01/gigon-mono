@@ -128,7 +128,7 @@ export function AppShell({
           <div className="flex-1" />
           <span className="flex items-center gap-1.5 rounded-full bg-tint-soft px-[13px] py-[7px] text-xs font-semibold text-royal-dark">
             <Icon name="mapPin" size={13} color="#103F96" strokeWidth={2.2} />
-            {profile.area ?? "Mactan"} · Zone 1
+            {profile.area ?? "Philippines"} · Zone 1
           </span>
           <button aria-label="Notifications" className="relative flex size-[38px] items-center justify-center text-slate">
             <Icon name="bell" size={19} />
@@ -227,7 +227,7 @@ export function AppShell({
                     {isEmployer ? (profile.business_name ?? profile.full_name) : profile.full_name}
                   </span>
                   <span className="text-[11px] text-ink-muted">
-                    {isEmployer ? "Business" : "Worker"} · {profile.area ?? "Mactan"} · pilot zone 1
+                    {isEmployer ? "Business" : "Worker"} · {profile.area ?? "Philippines"} · pilot zone 1
                   </span>
                 </div>
               </div>

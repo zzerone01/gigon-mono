@@ -62,7 +62,7 @@ export default function OnboardingPage() {
       await api.post("/api/onboarding", {
         name,
         role,
-        area: "Mactan",
+        area: "Philippines",
         lat: coords.lat,
         lng: coords.lng,
       });

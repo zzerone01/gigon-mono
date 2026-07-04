@@ -53,7 +53,7 @@ export default function PostingsScreen() {
         <View style={styles.zoneChip}>
           <Icon name="mapPin" size={13} color={palette.royal} strokeWidth={2.2} />
           <Text style={styles.zoneChipText}>
-            {profile?.business_name ?? "Your business"} · {profile?.area ?? "Mactan"}
+            {profile?.business_name ?? "Your business"} · {profile?.area ?? "Philippines"}
           </Text>
         </View>
       </View>
