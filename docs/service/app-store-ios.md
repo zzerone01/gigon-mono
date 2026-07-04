@@ -15,7 +15,7 @@
 | App Store Connect API Key           | ✅ APP_MANAGER 권한으로 EAS에 등록 (제출 자동화)  |
 | 푸시 (`aps-environment`)            | ✅ 빌드에 포함 확인 (ipa 엔타이틀먼트 검증)       |
 | `supportsTablet: false`             | ✅ 빌드 4에 반영 (`UIDeviceFamily: [1]`) — iPad 스크린샷 불필요 |
-| 스크린샷                            | ✅ 실기기 캡처 6장 `docs/brand/assets/ios-captures/` (1320×2868, 그대로 업로드 가능) + 프레임판 4장 `docs/brand/assets/app-store/` |
+| 스크린샷                            | ✅ ASC 업로드 완료 — 업로드본 6장 `docs/brand/assets/ios-captures/` (1284×2778·알파 제거) |
 | 심사용 데모 계정                    | ✅ 워커 `0917 123 4001` / 사장님 `0917 123 4002`, OTP `123456` (Play 리뷰어와 동일 — 삭제 금지) |
 | 리스팅 메타데이터 입력              | ⬜ listing.md 보고 입력                           |
 | App Privacy 설문                    | ⬜ listing.md의 영양라벨 매핑대로 입력            |
@@ -35,8 +35,18 @@ App Transfer로 이전 (사용자·리뷰 유지). Sign in with Apple은 팀 이
 
 ## 스크린샷 촬영 메모 (2026-07-04)
 
-- 시뮬레이터 iPhone 17 Pro Max(1320×2868 = 6.9″, ASC가 하위 크기 자동 스케일)
-  + 테스트 계정 로그인 + `xcrun simctl status_bar override --time 9:41`
+- ⚠️ **이 앱의 ASC 스크린샷 슬롯은 6.5″(1284×2778 등)만 허용** — 1320×2868(6.9″)
+  원본을 그대로 올리면 dimension 오류로 거부됨. 업로드 전 변환 필수
+  (알파 채널도 제거해야 함). 프레임판(`app-store/`, 1320×2868)도 동일하게 변환 필요:
+
+  ```sh
+  sips --resampleWidth 1284 --cropToHeightWidth 2778 1284 in.png --out out.png
+  node -e "require('sharp')('out.png').removeAlpha().png().toFile('final.png')"
+  ```
+
+- 시뮬레이터 iPhone 17 Pro Max로 촬영(원본 1320×2868) 후 위 레시피로 변환 —
+  `ios-captures/`에는 **변환·업로드 완료본(1284×2778)만 보관** (원본은 재촬영 가능:
+  테스트 계정 로그인 + `xcrun simctl status_bar override --time 9:41` + sim-use)
 - sim-use로 캡처 (관련 세팅: `~/.claude/skills/sim-use`)
 - 촬영 위해 프로덕션 데모 데이터 2건 수정 — 스모크 테스트 공고 제목
   `PostHog smoke test — ignore` → `Restock shelves — morning`(id c981c864),
