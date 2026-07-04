@@ -8,13 +8,26 @@ glyph from [`apps/web/public/logo-mark.svg`](../../../apps/web/public/logo-mark.
 ## Regenerate
 
 ```sh
-node docs/brand/assets/build.mjs
+node docs/brand/assets/build.mjs      # icons, favicons, OG images
+node docs/brand/assets/app-store.mjs  # framed App Store screenshots
 ```
 
 Requires `sharp` (root devDependency) for SVG→PNG, and headless Chrome (macOS
 app path) for the OG images — the OG step is skipped with a warning if Chrome
 is missing. HTML sources render Poppins/Inter from Google Fonts, so the OG
 step needs network.
+
+`app-store.mjs` recomposes the raw captures in [`play-store/`](./play-store/)
+into iPhone 6.9" (1320×2868) marketing screenshots in
+[`app-store/`](./app-store/) — see [`app-store/listing.md`](./app-store/listing.md)
+for the full App Store Connect prep (copy, privacy labels, review notes).
+
+[`ios-captures/`](./ios-captures/) holds the iOS simulator captures as
+uploaded to App Store Connect (1284×2778 / 6.5", alpha stripped; shot on
+iPhone 17 Pro Max 2026-07-04 — test accounts, PH-wide copy, status bar 9:41).
+Note: this app's ASC slot only accepts 6.5" sizes — raw 1320×2868 captures
+are rejected, so convert before upload (recipe in
+[`docs/service/app-store-ios.md`](../../service/app-store-ios.md)).
 
 ## Masters (this directory)
 
@@ -33,7 +46,7 @@ component (`@repo/ui`) and in the HTML sources here and in
 
 | Path | Composition | Used as |
 | --- | --- | --- |
-| `apps/mobile/assets/icon.png` | full-bleed Royal, glyph 63% | iOS app icon (1024², iOS masks it) |
+| `apps/mobile/assets/icon.png` | full-bleed Royal, glyph 63% | iOS app icon (1024², iOS masks it; **no alpha** — App Store rejects alpha, ITMS-90717) |
 | `apps/mobile/assets/android-icon-foreground.png` | glyph ~45% on transparent | adaptive-icon foreground (safe zone = centre 61%) |
 | `apps/mobile/assets/android-icon-background.png` | solid Royal | adaptive-icon background |
 | `apps/mobile/assets/android-icon-monochrome.png` | white glyph on transparent | Android 13 themed icon **and** notification small icon |

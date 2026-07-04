@@ -82,7 +82,8 @@ const MASTERS = {
 
 const PNGS = [
   // apps/mobile — Expo icon set (see apps/mobile/app.json)
-  ["apps/mobile/assets/icon.png", fullBleedSvg(1024)],
+  // removeAlpha: App Store rejects icons with an alpha channel (ITMS-90717).
+  ["apps/mobile/assets/icon.png", fullBleedSvg(1024), { removeAlpha: true }],
   // Android adaptive: safe zone is the centre 66/108dp (~61%) — keep the
   // glyph at ~45% of the canvas so nothing clips on circular masks.
   ["apps/mobile/assets/android-icon-foreground.png", glyphOnlySvg(1024, 0.65)],
@@ -135,10 +136,12 @@ for (const [name, content] of Object.entries(MASTERS)) {
 }
 
 console.log("PNGs");
-for (const [rel, svgSource] of PNGS) {
+for (const [rel, svgSource, opts] of PNGS) {
   const abs = join(ROOT, rel);
   mkdirSync(dirname(abs), { recursive: true });
-  await sharp(Buffer.from(svgSource)).png().toFile(abs);
+  let img = sharp(Buffer.from(svgSource));
+  if (opts?.removeAlpha) img = img.removeAlpha();
+  await img.png().toFile(abs);
   console.log("  wrote", rel);
 }
 
