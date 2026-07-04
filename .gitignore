@@ -48,3 +48,6 @@ ds-bundle/
 
 # Playwright MCP scratch
 .playwright-mcp/
+
+# direnv (machine-local EAS account switch)
+.envrc

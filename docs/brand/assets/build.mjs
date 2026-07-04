@@ -101,6 +101,9 @@ const PNGS = [
 
   // apps/web (gigon.io landing) — was missing an apple-touch-icon
   ["apps/web/app/apple-icon.png", fullBleedSvg(180)],
+
+  // Google Play store listing icon (512×512, full-bleed; Play applies the mask)
+  ["docs/brand/assets/play-store/icon-512.png", fullBleedSvg(512)],
 ];
 
 /** OG/Twitter cards: HTML source in this dir → 2× Chrome shot → Lanczos ↓. */
