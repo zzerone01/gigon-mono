@@ -1,5 +1,8 @@
 # iOS App Store 제출 — 진행 현황 및 체크리스트
 
+> ✅ **2026-07-04 심사 제출 완료** (최대 48시간 소요, 결과는 메일 통보).
+> 승인 후 수동 출시(Manually release) 설정 — App Store Connect에서 Release 버튼을 눌러야 공개된다.
+>
 > 2026-07-04 기준. **ASC에 입력할 카피/키워드/프라이버시 라벨의 정본은
 > [`docs/brand/assets/app-store/listing.md`](../brand/assets/app-store/listing.md)**
 > — 이 문서는 제출 진행 상황과 계정·빌드 전략만 기록한다.
@@ -17,9 +20,11 @@
 | `supportsTablet: false`             | ✅ 빌드 4에 반영 (`UIDeviceFamily: [1]`) — iPad 스크린샷 불필요 |
 | 스크린샷                            | ✅ ASC 업로드 완료 — 업로드본 6장 `docs/brand/assets/ios-captures/` (1284×2778·알파 제거) |
 | 심사용 데모 계정                    | ✅ 워커 `0917 123 4001` / 사장님 `0917 123 4002`, OTP `123456` (Play 리뷰어와 동일 — 삭제 금지) |
-| 리스팅 메타데이터 입력              | ⬜ listing.md 보고 입력                           |
-| App Privacy 설문                    | ⬜ listing.md의 영양라벨 매핑대로 입력            |
-| Add for Review                      | ⬜                                                |
+| 리스팅 메타데이터 입력              | ✅                                                |
+| Age Ratings                         | ✅ 18+ (수동 상향 — Play와 일관, 한국 19+)        |
+| Content Rights                      | ✅ 서드파티(사용자 제공) 콘텐츠 포함·권리 보유    |
+| App Privacy 설문                    | ✅ listing.md 매핑대로 입력·Publish               |
+| Add for Review                      | ✅ **2026-07-04 제출 완료**                       |
 
 ## 계정 전략
 
