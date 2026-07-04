@@ -8,7 +8,7 @@ GigOn 서비스 구현 문서. 새 세션/새 팀원은 이 순서로 읽으면 
 2. [backend.md](./backend.md) — 쓰기 API(Route Handlers)·Supabase 스키마·RLS 방침·realtime·배포 런북·마이그레이션 이력
 3. [web-app.md](./web-app.md) — app.gigon.io (Next.js) 구조와 반응형 규칙
 4. [mobile-app.md](./mobile-app.md) — Expo 앱 구조와 뷰모델 매핑 패턴
-5. [app-store-ios.md](./app-store-ios.md) — iOS App Store 제출 카피 원본·체크리스트·진행 현황 (2026-07-04)
+5. [app-store-ios.md](./app-store-ios.md) — iOS App Store 제출 진행 현황·체크리스트 (카피 정본은 docs/brand/assets/app-store/listing.md) (2026-07-04)
 
 > ✅ **완료(2026-07-03): [api-migration.md](./api-migration.md)** — 쓰기 RPC 15개를
 > Next.js Route Handlers로 이관 완료. 새 쓰기 기능은 `apps/app/app/api/**`에 추가할 것.
