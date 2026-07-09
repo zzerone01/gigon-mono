@@ -38,8 +38,9 @@ gigon-mono/ (turborepo + pnpm)
 - 사장님은 파일럿 초대제: 초대코드(`invite_codes` 테이블, 현재 `MACTAN-30`) → `POST /api/invites/redeem`
 - 테스트 번호(실 SMS 발송 없음): 09171234001~3 / OTP `123456`
   - 로컬: `supabase/config.toml` `[auth.sms.test_otp]`
-  - 클라우드: 같은 파일을 `supabase config push`로 동기화 (Twilio는 현재 더미 값 —
-    **실사용자 오픈 전 실 Twilio 연동 필요**)
+  - 클라우드: 같은 파일을 `supabase config push`로 동기화. 실 SMS는 **Twilio Verify**
+    연동 완료(대시보드 Auth→Providers→Phone) — 트라이얼이라 인증 번호만 발송,
+    **실사용자 오픈 전 Billing 등록**(pay-as-you-go 전환) 필요
 
 ## 디자인 소스 (Claude Design)
 

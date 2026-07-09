@@ -294,21 +294,24 @@ max_frequency = "5s"
 # uri = "pg-functions://<database>/<schema>/<hook_name>"
 
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
-# Local dev: a provider must be enabled for phone OTP; test_otp numbers above
-# never hit Twilio, so dummy credentials are safe here. Real delivery goes
-# through the send_sms hook below (Semaphore), not this provider.
-[auth.sms.twilio]
+# Real SMS OTP delivery: Twilio Verify (native provider). Chosen over Semaphore
+# and plain Twilio because Verify needs NO sender-name / sender-ID registration —
+# Twilio manages the sender pool for OTP. test_otp numbers above bypass it.
+# Credentials live in supabase/.env.local (gitignored); source before
+# `config push` / `start`:  set -a; source supabase/.env.local; set +a
+# NOTE: `message_service_sid` here holds the Twilio *Verify Service* SID (VA…).
+[auth.sms.twilio_verify]
 enabled = true
-account_sid = "AC_local_test"
-message_service_sid = "MG_local_test"
-auth_token = "local-test-token"
+account_sid = "env(TWILIO_ACCOUNT_SID)"
+message_service_sid = "env(TWILIO_VERIFY_SERVICE_SID)"
+auth_token = "env(TWILIO_AUTH_TOKEN)"
 
-# Real SMS delivery: Semaphore (PH-local) via the send-sms edge function.
-# test_otp numbers bypass this hook entirely. Secrets live in
-# supabase/.env.local (gitignored) — source it before `config push`/`start`:
-#   set -a; source supabase/.env.local; set +a
+# DEPRECATED: Semaphore (PH-local) via the send-sms edge function. Disabled in
+# favor of Twilio Verify above — Semaphore requires an approved sender name,
+# which blocked login (sender "GigOn" stuck Pending). Function left deployed as
+# a fallback; re-enable only after a Semaphore sender name is approved.
 [auth.hook.send_sms]
-enabled = true
+enabled = false
 uri = "https://uoeatrexoeghoigbxage.supabase.co/functions/v1/send-sms"
 secrets = "env(SEND_SMS_HOOK_SECRETS)"
 
