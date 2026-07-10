@@ -33,12 +33,14 @@ export function ProfileSheet({ profile, onClose }: { profile: Profile; onClose: 
     }
   };
 
+  // Functional updates: rapid toggles must each build on the latest list,
+  // or a stale closure drops the earlier change (last write wins server-side).
   const toggleLanguage = (lang: string) => {
-    const next = languages.includes(lang)
-      ? languages.filter((l) => l !== lang)
-      : [...languages, lang];
-    setLanguages(next);
-    void save({ languages: next });
+    setLanguages((prev) => {
+      const next = prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang];
+      void save({ languages: next });
+      return next;
+    });
   };
 
   const close = () => {
@@ -84,15 +86,12 @@ export function ProfileSheet({ profile, onClose }: { profile: Profile; onClose: 
     setBusy(false);
   };
 
-  const toggleSkill = async (skill: string) => {
-    const next = skills.includes(skill) ? skills.filter((s) => s !== skill) : [...skills, skill];
-    setSkills(next);
-    setError("");
-    try {
-      await api.post("/api/profile", { skills: next });
-    } catch (err) {
-      setError((err as Error).message);
-    }
+  const toggleSkill = (skill: string) => {
+    setSkills((prev) => {
+      const next = prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill];
+      void save({ skills: next });
+      return next;
+    });
   };
 
   return (

@@ -865,7 +865,7 @@ function dayChoices() {
         ? "Today"
         : i === 1
           ? "Tomorrow"
-          : d.toLocaleDateString("en-PH", { weekday: "short", day: "numeric" });
+          : `${d.toLocaleDateString("en-PH", { weekday: "short" })} ${d.getDate()}`;
     out.push({ value, label });
   }
   return out;

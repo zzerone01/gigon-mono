@@ -50,7 +50,8 @@ export function ProfileTab() {
   };
 
   const toggleLanguage = async (lang: string) => {
-    const cur = profile?.languages ?? [];
+    // read the store directly — the render-scoped `profile` can be stale on quick taps
+    const cur = useGigStore.getState().profile?.languages ?? [];
     const next = cur.includes(lang) ? cur.filter((l) => l !== lang) : [...cur, lang];
     const err = await doUpdateProfile({ languages: next });
     if (err) Alert.alert("Couldn't save languages", err);
@@ -98,7 +99,7 @@ export function ProfileTab() {
   };
 
   const toggleSkill = async (skill: string) => {
-    const cur = profile?.skills ?? [];
+    const cur = useGigStore.getState().profile?.skills ?? [];
     const next = cur.includes(skill) ? cur.filter((s) => s !== skill) : [...cur, skill];
     const err = await doUpdateProfile({ skills: next });
     if (err) Alert.alert("Couldn't save skills", err);

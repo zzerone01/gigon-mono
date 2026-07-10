@@ -51,3 +51,4 @@ ds-bundle/
 
 # direnv (machine-local EAS account switch)
 .envrc
+.gstack/
