@@ -12,14 +12,18 @@ const path = require("path");
  *   referer-restricted and won't work): set as an EAS env var or in eas.json.
  */
 module.exports = ({ config }) => {
-  const googleServices = path.join(__dirname, "google-services.json");
+  // Local dev: the gitignored file sits next to this config. EAS builders:
+  // the archive excludes gitignored files, so the GOOGLE_SERVICES_JSON
+  // file-type env var materializes it and exposes its absolute path instead.
+  const googleServices =
+    process.env.GOOGLE_SERVICES_JSON ?? path.join(__dirname, "google-services.json");
   const mapsKey = process.env.GOOGLE_MAPS_ANDROID_API_KEY;
 
   return {
     ...config,
     android: {
       ...config.android,
-      ...(fs.existsSync(googleServices) ? { googleServicesFile: "./google-services.json" } : {}),
+      ...(fs.existsSync(googleServices) ? { googleServicesFile: googleServices } : {}),
       ...(mapsKey ? { config: { googleMaps: { apiKey: mapsKey } } } : {}),
     },
   };
