@@ -139,7 +139,7 @@ export function ProfileTab() {
       </View>
       <ScrollView
         style={{ flex: 1, backgroundColor: palette.bgSoft }}
-        contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 12 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 28, gap: 12 }}
       >
         <View style={styles.profileCard}>
           <Press onPress={pickPhoto} haptic={false} style={{ opacity: photoBusy ? 0.5 : 1 }}>

@@ -14,6 +14,7 @@ import {
   numeric,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   unique,
@@ -76,6 +77,16 @@ export const profiles = pgTable("profiles", {
   onboarded: boolean("onboarded").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const chatReads = pgTable(
+  "chat_reads",
+  {
+    matchId: uuid("match_id").notNull(),
+    userId: uuid("user_id").notNull(),
+    lastReadAt: timestamp("last_read_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.matchId, t.userId] })],
+);
 
 export const inviteCodes = pgTable("invite_codes", {
   code: text("code").primaryKey(),

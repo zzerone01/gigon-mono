@@ -135,6 +135,39 @@ export type Database = {
           },
         ]
       }
+      chat_reads: {
+        Row: {
+          last_read_at: string
+          match_id: string
+          user_id: string
+        }
+        Insert: {
+          last_read_at?: string
+          match_id: string
+          user_id: string
+        }
+        Update: {
+          last_read_at?: string
+          match_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_reads_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_reads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       disputes: {
         Row: {
           created_at: string

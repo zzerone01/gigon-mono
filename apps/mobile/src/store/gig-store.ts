@@ -35,6 +35,8 @@ export interface ChatMsg {
   me: boolean;
   text: string;
   time: string;
+  /** ISO created_at — drives the day separators. */
+  at: string;
 }
 
 export interface ToastData {
@@ -125,6 +127,8 @@ interface GigState {
 
   // shared
   chatMsgs: ChatMsg[];
+  /** Other participant's last_read_at (ISO) — drives the Read receipt. */
+  chatOtherReadAt: string | null;
   toast: ToastData | null;
   sheet: SheetKind | null;
 
@@ -355,9 +359,22 @@ function setupChatRealtime(get: () => GigState, matchId: string | null) {
         const row = payload.new as { sender_id: string; body: string; created_at: string };
         const me = row.sender_id === get().userId;
         useGigStore.setState((s) => ({
-          chatMsgs: [...s.chatMsgs, { me, text: row.body, time: msgTime(row.created_at) }],
+          chatMsgs: [
+            ...s.chatMsgs,
+            { me, text: row.body, time: msgTime(row.created_at), at: row.created_at },
+          ],
           unread: me ? s.unread : s.unread + 1,
         }));
+      },
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "chat_reads", filter: `match_id=eq.${matchId}` },
+      (payload) => {
+        const row = payload.new as { user_id: string; last_read_at: string };
+        if (row.user_id !== get().userId) {
+          useGigStore.setState({ chatOtherReadAt: row.last_read_at });
+        }
       },
     )
     .subscribe();
@@ -365,22 +382,23 @@ function setupChatRealtime(get: () => GigState, matchId: string | null) {
 
 async function loadChat(get: () => GigState, matchId: string | null) {
   if (!matchId) {
-    useGigStore.setState({ chatMsgs: [] });
+    useGigStore.setState({ chatMsgs: [], chatOtherReadAt: null });
     setupChatRealtime(get, null);
     return;
   }
-  const { data } = await supabase
-    .from("messages")
-    .select("*")
-    .eq("match_id", matchId)
-    .order("id");
   const uid = get().userId;
+  const [{ data }, readsRes] = await Promise.all([
+    supabase.from("messages").select("*").eq("match_id", matchId).order("id"),
+    supabase.from("chat_reads").select("*").eq("match_id", matchId).neq("user_id", uid ?? ""),
+  ]);
   useGigStore.setState({
     chatMsgs: (data ?? []).map((m) => ({
       me: m.sender_id === uid,
       text: m.body,
       time: msgTime(m.created_at),
+      at: m.created_at,
     })),
+    chatOtherReadAt: readsRes.data?.[0]?.last_read_at ?? null,
   });
   setupChatRealtime(get, matchId);
 }
@@ -430,6 +448,7 @@ const initialFlow = {
   pfLng: null as number | null,
   lastPostedGigId: null as string | null,
   chatMsgs: [] as ChatMsg[],
+  chatOtherReadAt: null as string | null,
   toast: null as ToastData | null,
   sheet: null as SheetKind | null,
 };
@@ -880,7 +899,11 @@ export const useGigStore = create<GigState>((set, get) => ({
     await get().loadEmployer();
   },
 
-  markChatRead: () => set({ unread: 0 }),
+  markChatRead: () => {
+    set({ unread: 0 });
+    const matchId = get().role === "worker" ? wMatchId : eMatchId;
+    if (matchId) api.post(`/api/matches/${matchId}/read`).catch(() => {});
+  },
   sendChat: async (text) => {
     const t = text.trim();
     const matchId = get().role === "worker" ? wMatchId : eMatchId;

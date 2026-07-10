@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 import { api } from "@/lib/api";
 import type { Message } from "@/lib/domain";
@@ -9,6 +9,16 @@ import { Icon } from "./icons";
 import { Sheet } from "./ui";
 
 /* ------------------------------ chat sheet ------------------------------ */
+
+/** KakaoTalk-style day-separator label. */
+function dayLabel(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-PH", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 export function ChatSheet({
   matchId,
@@ -28,12 +38,14 @@ export function ChatSheet({
   onClose: () => void;
 }) {
   const [msgs, setMsgs] = useState<Message[]>([]);
+  const [otherReadAt, setOtherReadAt] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const supabase = supabaseBrowser();
 
   useEffect(() => {
     let alive = true;
+    const markRead = () => api.post(`/api/matches/${matchId}/read`).catch(() => {});
     supabase
       .from("messages")
       .select("*")
@@ -42,17 +54,33 @@ export function ChatSheet({
       .then(({ data }) => {
         if (alive && data) setMsgs(data);
       });
+    supabase
+      .from("chat_reads")
+      .select("*")
+      .eq("match_id", matchId)
+      .neq("user_id", meId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (alive && data) setOtherReadAt(data.last_read_at);
+      });
+    markRead(); // the chat is open — everything so far is seen
     const channel = supabase
       .channel(`chat-${matchId}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `match_id=eq.${matchId}` },
         (payload) => {
-          setMsgs((m) =>
-            m.some((x) => x.id === (payload.new as Message).id)
-              ? m
-              : [...m, payload.new as Message],
-          );
+          const row = payload.new as Message;
+          setMsgs((m) => (m.some((x) => x.id === row.id) ? m : [...m, row]));
+          if (row.sender_id !== meId) markRead(); // seen live while open
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "chat_reads", filter: `match_id=eq.${matchId}` },
+        (payload) => {
+          const row = payload.new as { user_id: string; last_read_at: string };
+          if (row.user_id !== meId) setOtherReadAt(row.last_read_at);
         },
       )
       .subscribe();
@@ -60,7 +88,7 @@ export function ChatSheet({
       alive = false;
       supabase.removeChannel(channel);
     };
-  }, [matchId, supabase]);
+  }, [matchId, meId, supabase]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -125,28 +153,53 @@ export function ChatSheet({
           <span className="self-center rounded-full bg-tint px-3 py-1 text-[10.5px] text-ink-muted">
             Matched · in-app chat only, no numbers shared
           </span>
-          {msgs.map((m) => {
-            const mine = m.sender_id === meId;
-            return (
-              <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                <div
-                  className={`max-w-[80%] rounded-[13px] px-3 py-[9px] text-[13px] leading-snug ${
-                    mine ? "bg-royal text-white" : "border border-line bg-white text-ink"
-                  }`}
-                >
-                  {m.body}
-                  <div
-                    className={`mt-0.5 text-right text-[9px] ${mine ? "text-navy-muted" : "text-ink-muted"}`}
-                  >
-                    {new Date(m.created_at).toLocaleTimeString("en-PH", {
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
+          {(() => {
+            const readTs = otherReadAt ? new Date(otherReadAt).getTime() : 0;
+            let lastReadId: number | null = null;
+            for (const m of msgs) {
+              if (m.sender_id === meId && new Date(m.created_at).getTime() <= readTs)
+                lastReadId = m.id;
+            }
+            return msgs.map((m, i) => {
+              const mine = m.sender_id === meId;
+              const prev = msgs[i - 1];
+              const newDay =
+                !prev ||
+                new Date(m.created_at).toDateString() !== new Date(prev.created_at).toDateString();
+              return (
+                <Fragment key={m.id}>
+                  {newDay && (
+                    <span className="my-1 flex items-center gap-1.5 self-center rounded-full bg-[rgba(15,27,46,0.07)] px-3 py-1 text-[10.5px] font-medium text-ink-muted">
+                      <Icon name="events" size={11} strokeWidth={2} />
+                      {dayLabel(m.created_at)}
+                    </span>
+                  )}
+                  <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className={`max-w-[80%] rounded-[13px] px-3 py-[9px] text-[13px] leading-snug ${
+                        mine ? "bg-royal text-white" : "border border-line bg-white text-ink"
+                      }`}
+                    >
+                      {m.body}
+                      <div
+                        className={`mt-0.5 text-right text-[9px] ${mine ? "text-navy-muted" : "text-ink-muted"}`}
+                      >
+                        {new Date(m.created_at).toLocaleTimeString("en-PH", {
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
+                  {m.id === lastReadId && (
+                    <span className="-mt-1 self-end text-[9.5px] font-semibold text-royal">
+                      Read
+                    </span>
+                  )}
+                </Fragment>
+              );
+            });
+          })()}
         </div>
         <div className="flex shrink-0 gap-[5px] overflow-x-auto px-3 pb-[3px] pt-2">
           {quicks.map((q) => (

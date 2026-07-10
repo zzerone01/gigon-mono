@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -26,6 +26,16 @@ import { font, palette, radius } from "../src/theme";
 const WORKER_QUICKS = ["On my way po", "Where is the entrance?", "Running 5 min late"];
 const EMPLOYER_QUICKS = ["Supplies are inside", "Call when you arrive", "Thank you!"];
 
+/** KakaoTalk-style day-separator label. */
+function dayLabel(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-PH", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 export default function ChatRoomScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -34,6 +44,7 @@ export default function ChatRoomScreen() {
   const eStatus = useGigStore((s) => s.eStatus);
   const wGig = useGigStore((s) => s.wGig);
   const msgs = useGigStore((s) => s.chatMsgs);
+  const otherReadAt = useGigStore((s) => s.chatOtherReadAt);
   const sendChat = useGigStore((s) => s.sendChat);
   const markChatRead = useGigStore((s) => s.markChatRead);
   const a = useMatchedApplicant();
@@ -53,9 +64,11 @@ export default function ChatRoomScreen() {
   const [input, setInput] = useState("");
   const scrollRef = useRef<ScrollView>(null);
 
+  // On open AND whenever a message lands while the room is open — the other
+  // side's Read receipt tracks what has actually been on screen.
   useEffect(() => {
     markChatRead();
-  }, [markChatRead]);
+  }, [markChatRead, msgs.length]);
 
   const send = (text: string) => {
     if (!text.trim()) return;
@@ -91,30 +104,53 @@ export default function ChatRoomScreen() {
             Matched today · in-app chat only, no numbers shared
           </Text>
         </View>
-        {msgs.map((m, i) => (
-          <View key={i} style={{ alignItems: m.me ? "flex-end" : "flex-start" }}>
-            <View
-              style={[
-                styles.bubble,
-                m.me
-                  ? { backgroundColor: palette.royal, borderColor: palette.royal }
-                  : { backgroundColor: palette.white, borderColor: palette.line },
-              ]}
-            >
-              <Text style={[styles.bubbleText, { color: m.me ? palette.white : palette.ink }]}>
-                {m.text}
-              </Text>
-              <Text
-                style={[
-                  styles.bubbleTime,
-                  { color: m.me ? palette.onNavyMuted : palette.muted },
-                ]}
-              >
-                {m.time}
-              </Text>
-            </View>
-          </View>
-        ))}
+        {(() => {
+          const readTs = otherReadAt ? new Date(otherReadAt).getTime() : 0;
+          let lastReadIdx = -1;
+          msgs.forEach((m, i) => {
+            if (m.me && new Date(m.at).getTime() <= readTs) lastReadIdx = i;
+          });
+          return msgs.map((m, i) => {
+            const prev = msgs[i - 1];
+            const newDay =
+              !prev || new Date(m.at).toDateString() !== new Date(prev.at).toDateString();
+            return (
+              <Fragment key={i}>
+                {newDay && (
+                  <View style={styles.dateChip}>
+                    <Icon name="events" size={11} color={palette.muted} strokeWidth={2} />
+                    <Text style={styles.dateChipText}>{dayLabel(m.at)}</Text>
+                  </View>
+                )}
+                <View style={{ alignItems: m.me ? "flex-end" : "flex-start" }}>
+                  <View
+                    style={[
+                      styles.bubble,
+                      m.me
+                        ? { backgroundColor: palette.royal, borderColor: palette.royal }
+                        : { backgroundColor: palette.white, borderColor: palette.line },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.bubbleText, { color: m.me ? palette.white : palette.ink }]}
+                    >
+                      {m.text}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.bubbleTime,
+                        { color: m.me ? palette.onNavyMuted : palette.muted },
+                      ]}
+                    >
+                      {m.time}
+                    </Text>
+                  </View>
+                  {i === lastReadIdx && <Text style={styles.readCaption}>Read</Text>}
+                </View>
+              </Fragment>
+            );
+          });
+        })()}
       </ScrollView>
 
       <View style={{ backgroundColor: palette.white }}>
@@ -207,6 +243,29 @@ const styles = StyleSheet.create({
     fontSize: 9.5,
     marginTop: 3,
     textAlign: "right",
+  },
+  dateChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    alignSelf: "center",
+    backgroundColor: "rgba(15,27,46,0.07)",
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginVertical: 4,
+  },
+  dateChipText: {
+    fontFamily: font.sansMedium,
+    fontSize: 10.5,
+    color: palette.muted,
+  },
+  readCaption: {
+    fontFamily: font.sansSemiBold,
+    fontSize: 9.5,
+    color: palette.royal,
+    marginTop: 2,
+    marginRight: 2,
   },
   quick: {
     height: 32,
