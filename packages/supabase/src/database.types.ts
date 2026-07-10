@@ -193,6 +193,7 @@ export type Database = {
           lng: number
           pay: number
           slots: number
+          starts_on: string
           status: Database["public"]["Enums"]["gig_status"]
           title: string
           type: Database["public"]["Enums"]["gig_type"]
@@ -210,6 +211,7 @@ export type Database = {
           lng: number
           pay: number
           slots?: number
+          starts_on?: string
           status?: Database["public"]["Enums"]["gig_status"]
           title: string
           type: Database["public"]["Enums"]["gig_type"]
@@ -227,6 +229,7 @@ export type Database = {
           lng?: number
           pay?: number
           slots?: number
+          starts_on?: string
           status?: Database["public"]["Enums"]["gig_status"]
           title?: string
           type?: Database["public"]["Enums"]["gig_type"]
@@ -419,7 +422,9 @@ export type Database = {
         Row: {
           active_role: Database["public"]["Enums"]["app_role"]
           area: string | null
+          availability: string
           avatar_url: string | null
+          bio: string
           business_name: string | null
           cancel_count: number
           created_at: string
@@ -427,6 +432,7 @@ export type Database = {
           full_name: string
           id: string
           jobs_completed: number
+          languages: string[]
           lat: number | null
           lng: number | null
           no_show_count: number
@@ -438,7 +444,9 @@ export type Database = {
         Insert: {
           active_role?: Database["public"]["Enums"]["app_role"]
           area?: string | null
+          availability?: string
           avatar_url?: string | null
+          bio?: string
           business_name?: string | null
           cancel_count?: number
           created_at?: string
@@ -446,6 +454,7 @@ export type Database = {
           full_name?: string
           id: string
           jobs_completed?: number
+          languages?: string[]
           lat?: number | null
           lng?: number | null
           no_show_count?: number
@@ -457,7 +466,9 @@ export type Database = {
         Update: {
           active_role?: Database["public"]["Enums"]["app_role"]
           area?: string | null
+          availability?: string
           avatar_url?: string | null
+          bio?: string
           business_name?: string | null
           cancel_count?: number
           created_at?: string
@@ -465,6 +476,7 @@ export type Database = {
           full_name?: string
           id?: string
           jobs_completed?: number
+          languages?: string[]
           lat?: number | null
           lng?: number | null
           no_show_count?: number
@@ -561,7 +573,29 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      worker_category_stats: {
+        Row: {
+          completed: number | null
+          type: Database["public"]["Enums"]["gig_type"] | null
+          worker_id: string | null
+        }
+        Relationships: []
+      }
+      worker_rehire_stats: {
+        Row: {
+          rehire_businesses: number | null
+          worker_id: string | null
+        }
+        Relationships: []
+      }
+      worker_tag_stats: {
+        Row: {
+          cnt: number | null
+          tag: string | null
+          worker_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       expire_stale_gigs: { Args: never; Returns: number }

@@ -26,6 +26,8 @@ export const FILTERS = ["All", ...GIG_TYPES] as const;
 /** Worker skill options — mirrors the gig categories so applicant tags line up. */
 export const SKILL_OPTIONS = GIG_TYPES.filter((t) => t !== "Others");
 
+export const LANGUAGE_OPTIONS = ["English", "Tagalog", "Cebuano", "Ilonggo"];
+
 export const WORKER_RATE_TAGS = [
   "Paid exactly as agreed",
   "On time",
@@ -55,6 +57,48 @@ export const EMPLOYER_CANCEL_REASONS = [
   "Made other arrangements",
   "Other",
 ];
+
+/** Platform-verified stats for one worker (from the worker_*_stats views). */
+export interface WorkerStats {
+  cats: string;
+  rehires: number;
+  tags: string;
+}
+
+/** Fold the three stats-view result sets into a per-worker map. */
+export function buildWorkerStats(
+  cat: { worker_id: string | null; type: string | null; completed: number | null }[],
+  reh: { worker_id: string | null; rehire_businesses: number | null }[],
+  tag: { worker_id: string | null; tag: string | null; cnt: number | null }[],
+): Record<string, WorkerStats> {
+  const map: Record<string, WorkerStats> = {};
+  const ensure = (id: string) => (map[id] ??= { cats: "", rehires: 0, tags: "" });
+  const catByWorker: Record<string, { type: string; completed: number }[]> = {};
+  for (const r of cat)
+    if (r.worker_id && r.type && r.completed)
+      (catByWorker[r.worker_id] ??= []).push({ type: r.type, completed: r.completed });
+  for (const [id, rows] of Object.entries(catByWorker)) {
+    rows.sort((a, b) => b.completed - a.completed);
+    ensure(id).cats = rows
+      .slice(0, 3)
+      .map((r) => `${r.type} ×${r.completed}`)
+      .join(" · ");
+  }
+  for (const r of reh)
+    if (r.worker_id && r.rehire_businesses) ensure(r.worker_id).rehires = r.rehire_businesses;
+  const tagByWorker: Record<string, { tag: string; cnt: number }[]> = {};
+  for (const r of tag)
+    if (r.worker_id && r.tag && r.cnt)
+      (tagByWorker[r.worker_id] ??= []).push({ tag: r.tag, cnt: r.cnt });
+  for (const [id, rows] of Object.entries(tagByWorker)) {
+    rows.sort((a, b) => b.cnt - a.cnt);
+    ensure(id).tags = rows
+      .slice(0, 2)
+      .map((r) => `“${r.tag}” ×${r.cnt}`)
+      .join(" · ");
+  }
+  return map;
+}
 
 export function initials(name: string | null | undefined): string {
   if (!name) return "?";

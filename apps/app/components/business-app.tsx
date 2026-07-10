@@ -3,14 +3,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Icon, GIG_TYPE_ICON } from "@/components/icons";
+import { HAS_MAPS_KEY, LocationPicker } from "@/components/map-view";
 import { CancelSheet, ChatSheet, RateSheet } from "@/components/sheets";
 import { useToast } from "@/components/shell";
 import { Avatar, Chip, LiveDot, MiniStepper, MonoBadge, Sheet } from "@/components/ui";
+import { GigDetailSheet } from "@/components/worker-app";
 import {
   EMPLOYER_CANCEL_REASONS,
   EMPLOYER_RATE_TAGS,
   GIG_TYPES,
   badgeStyle,
+  buildWorkerStats,
   firstName,
   historyLabel,
   initials,
@@ -18,8 +21,10 @@ import {
   stepIndex,
   type Application,
   type Gig,
+  type GigWithEmployer,
   type Match,
   type Profile,
+  type WorkerStats,
 } from "@/lib/domain";
 import { api } from "@/lib/api";
 import { MACTAN_CENTER, distanceMeters, formatDistance } from "@/lib/geo";
@@ -41,11 +46,13 @@ export function BusinessApp({ profile }: { profile: Profile }) {
 
   const [gig, setGig] = useState<Gig | null>(null);
   const [apps, setApps] = useState<AppWithWorker[]>([]);
+  const [workerStats, setWorkerStats] = useState<Record<string, WorkerStats>>({});
   const [match, setMatch] = useState<MatchWithWorker | null>(null);
   const [hadNoShow, setHadNoShow] = useState(false);
   const [reviewed, setReviewed] = useState(false);
 
   const [postOpen, setPostOpen] = useState(false);
+  const [previewGig, setPreviewGig] = useState<GigWithEmployer | null>(null);
   const [confirmApp, setConfirmApp] = useState<AppWithWorker | null>(null);
   const [noShowOpen, setNoShowOpen] = useState(false);
   const [cancelMatchOpen, setCancelMatchOpen] = useState(false);
@@ -103,6 +110,22 @@ export function BusinessApp({ profile }: { profile: Profile }) {
     const m = (matchRes.data as MatchWithWorker | null) ?? null;
     setMatch(m);
     setHadNoShow(!!noShowRes.data);
+
+    // Platform-verified stats for everyone on screen (applicants + match)
+    const statIds = [
+      ...((appsRes.data as AppWithWorker[]) ?? []).map((a) => a.worker.id),
+      ...(m ? [m.worker.id] : []),
+    ];
+    if (statIds.length) {
+      const [catRes, rehRes, tagRes] = await Promise.all([
+        supabase.from("worker_category_stats").select("*").in("worker_id", statIds),
+        supabase.from("worker_rehire_stats").select("*").in("worker_id", statIds),
+        supabase.from("worker_tag_stats").select("*").in("worker_id", statIds),
+      ]);
+      setWorkerStats(buildWorkerStats(catRes.data ?? [], rehRes.data ?? [], tagRes.data ?? []));
+    } else {
+      setWorkerStats({});
+    }
     if (m) {
       const { data: rv } = await supabase
         .from("reviews")
@@ -430,6 +453,11 @@ export function BusinessApp({ profile }: { profile: Profile }) {
                     {apps.map((a) => {
                       const w = a.worker;
                       const hist = historyLabel(w);
+                      const st = workerStats[w.id];
+                      const verifiedBits = [
+                        ...(st?.cats ? [st.cats] : []),
+                        ...(st?.rehires ? [`rehired ×${st.rehires}`] : []),
+                      ];
                       const dist =
                         w.lat && w.lng
                           ? formatDistance(distanceMeters(bizLoc, { lat: w.lat, lng: w.lng }))
@@ -458,9 +486,28 @@ export function BusinessApp({ profile }: { profile: Profile }) {
                               <div className="text-[11px] text-ink-muted">
                                 {w.skills.length ? w.skills.join(" · ") : "General"} ·{" "}
                                 {w.area ?? "Philippines"}
+                                {w.languages.length ? ` · ${w.languages.join(" / ")}` : ""}
                               </div>
                             </div>
                           </div>
+                          {(verifiedBits.length > 0 || st?.tags || w.bio) && (
+                            <div className="flex flex-col gap-[3px] px-3.5 pb-2.5">
+                              {verifiedBits.length > 0 && (
+                                <span className="flex items-center gap-1.5 text-[10.5px] font-semibold text-success">
+                                  <Icon name="check" size={11} strokeWidth={2.6} />
+                                  {verifiedBits.join(" · ")}
+                                </span>
+                              )}
+                              {st?.tags && (
+                                <span className="text-[10.5px] text-slate">{st.tags}</span>
+                              )}
+                              {w.bio && (
+                                <span className="line-clamp-2 text-[11px] leading-snug text-ink-body">
+                                  &ldquo;{w.bio}&rdquo;
+                                </span>
+                              )}
+                            </div>
+                          )}
                           <div className="grid grid-cols-4 border-y border-line-soft">
                             {[
                               { v: dist, l: "AWAY", c: "#103F96" },
@@ -662,12 +709,24 @@ export function BusinessApp({ profile }: { profile: Profile }) {
       {postOpen && (
         <PostGigSheet
           profile={profile}
-          onPosted={() => {
+          onPosted={(posted) => {
             setPostOpen(false);
             toast("Gig posted — free", "Live now · visible to workers within 3 km");
             loadAll();
+            setPreviewGig(posted);
           }}
           onClose={() => setPostOpen(false)}
+        />
+      )}
+
+      {previewGig && (
+        <GigDetailSheet
+          gig={previewGig}
+          applied={false}
+          dist="0 m"
+          preview
+          onApply={() => {}}
+          onClose={() => setPreviewGig(null)}
         />
       )}
 
@@ -791,8 +850,26 @@ export function BusinessApp({ profile }: { profile: Profile }) {
 
 /* ============================ post gig sheet ============================ */
 
-const WHENS = ["Today", "Tomorrow"];
 const DURATIONS = ["1 hr", "2 hrs", "3 hrs"];
+
+/** Today + the next 7 days as selectable start dates. */
+function dayChoices() {
+  const out: { value: string; label: string }[] = [];
+  for (let i = 0; i < 8; i++) {
+    const d = new Date(Date.now() + i * 86400000);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+      d.getDate(),
+    ).padStart(2, "0")}`;
+    const label =
+      i === 0
+        ? "Today"
+        : i === 1
+          ? "Tomorrow"
+          : d.toLocaleDateString("en-PH", { weekday: "short", day: "numeric" });
+    out.push({ value, label });
+  }
+  return out;
+}
 
 function PostGigSheet({
   profile,
@@ -800,12 +877,13 @@ function PostGigSheet({
   onClose,
 }: {
   profile: Profile;
-  onPosted: () => void;
+  onPosted: (previewGig: GigWithEmployer) => void;
   onClose: () => void;
 }) {
   const [type, setType] = useState<(typeof GIG_TYPES)[number]>("Cleaning");
   const [title, setTitle] = useState("Afternoon café deep clean");
-  const [when, setWhen] = useState("Today");
+  const days = useMemo(dayChoices, []);
+  const [dayIdx, setDayIdx] = useState(0);
   const [time, setTime] = useState("2:00 – 4:00 PM");
   const [dur, setDur] = useState("2 hrs");
   const [pay, setPay] = useState("350");
@@ -813,8 +891,18 @@ function PostGigSheet({
   const [desc, setDesc] = useState(
     "Dining area + kitchen wipe-down after the lunch rush. Mop and supplies provided.",
   );
+  const bizLoc = { lat: profile.lat ?? MACTAN_CENTER.lat, lng: profile.lng ?? MACTAN_CENTER.lng };
+  const [loc, setLoc] = useState(bizLoc);
+  const [pinMoved, setPinMoved] = useState(false);
+  const [mapKey, setMapKey] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  const resetPin = () => {
+    setLoc(bizLoc);
+    setPinMoved(false);
+    setMapKey((k) => k + 1);
+  };
 
   const submit = async () => {
     const payNum = parseInt(pay, 10);
@@ -822,19 +910,23 @@ function PostGigSheet({
       setError("Add a title and pay amount.");
       return;
     }
+    const day = days[dayIdx]!;
+    const whenLabel = `${day.label} · ${time}`;
     setBusy(true);
     setError("");
+    let posted: { id: string };
     try {
-      await api.post("/api/gigs", {
+      posted = await api.post<{ id: string }>("/api/gigs", {
         title: title.trim(),
         type,
         description: desc,
         pay: payNum,
         duration: dur,
-        whenLabel: `${when} · ${time}`,
+        whenLabel,
+        startsOn: day.value,
         area: profile.area ?? "Philippines",
-        lat: profile.lat ?? MACTAN_CENTER.lat,
-        lng: profile.lng ?? MACTAN_CENTER.lng,
+        lat: loc.lat,
+        lng: loc.lng,
         slots,
       });
     } catch (err) {
@@ -843,7 +935,26 @@ function PostGigSheet({
       return;
     }
     setBusy(false);
-    onPosted();
+    const now = new Date().toISOString();
+    onPosted({
+      id: posted.id,
+      employer_id: profile.id,
+      title: title.trim(),
+      type,
+      description: desc,
+      pay: payNum,
+      duration: dur,
+      when_label: whenLabel,
+      starts_on: day.value,
+      area: profile.area ?? "Philippines",
+      lat: loc.lat,
+      lng: loc.lng,
+      slots,
+      status: "POSTED",
+      expires_at: now,
+      created_at: now,
+      employer: profile,
+    });
   };
 
   return (
@@ -892,20 +1003,20 @@ function PostGigSheet({
         </label>
         <div className="flex flex-col gap-1.5">
           <span className="text-[12.5px] font-semibold">When</span>
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+            {days.map((d, i) => (
+              <Chip key={d.value} label={d.label} active={dayIdx === i} onClick={() => setDayIdx(i)} />
+            ))}
+          </div>
           <div className="flex items-center gap-1.5">
-            {WHENS.map((w) => (
-              <Chip key={w} label={w} active={when === w} onClick={() => setWhen(w)} />
+            {DURATIONS.map((d) => (
+              <Chip key={d} label={d} active={dur === d} onClick={() => setDur(d)} />
             ))}
             <input
               value={time}
               onChange={(e) => setTime(e.target.value)}
               className="h-[34px] min-w-0 flex-1 rounded-full border border-line px-[13px] text-xs outline-none focus:border-royal"
             />
-          </div>
-          <div className="flex gap-1.5">
-            {DURATIONS.map((d) => (
-              <Chip key={d} label={d} active={dur === d} onClick={() => setDur(d)} />
-            ))}
           </div>
         </div>
         <div className="flex gap-2.5">
@@ -944,28 +1055,54 @@ function PostGigSheet({
         </div>
         <div className="flex flex-col gap-1.5">
           <span className="text-[12.5px] font-semibold">Location pin</span>
-          <div className="relative h-24 overflow-hidden rounded-[11px] border border-line bg-tint-soft">
-            <svg viewBox="0 0 412 160" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 size-full">
-              <rect width={412} height={160} fill="#F2F6FC" />
-              <path d="M330 0 L412 0 L412 160 L300 160 C315 105 328 50 330 0 Z" fill="#CDD9F0" />
-              <path d="M0 98 L412 62" stroke="#fff" strokeWidth={9} />
-              <path d="M130 0 L150 160" stroke="#fff" strokeWidth={5} />
-              <rect x={46} y={22} width={52} height={32} rx={6} fill="#E7EDF8" />
-            </svg>
-            <div className="absolute left-1/2 top-[46%] -translate-x-1/2 -translate-y-full">
-              <span className="flex flex-col items-center drop-shadow-[0_3px_6px_rgba(15,27,46,0.25)]">
-                <span className="flex size-[26px] items-center justify-center rounded-[7px] bg-royal">
-                  <Icon name="mapPin" size={13} color="#fff" strokeWidth={2.2} />
-                </span>
-                <span className="size-0 border-x-4 border-t-[5px] border-x-transparent border-t-royal" />
-              </span>
+          <div className="relative h-40 overflow-hidden rounded-[11px] border border-line bg-tint-soft">
+            {HAS_MAPS_KEY ? (
+              <LocationPicker
+                key={mapKey}
+                center={loc}
+                onMove={(c) => {
+                  if (Math.abs(c.lat - loc.lat) < 1e-7 && Math.abs(c.lng - loc.lng) < 1e-7) return;
+                  setLoc(c);
+                  setPinMoved(true);
+                }}
+              />
+            ) : (
+              <>
+                <svg viewBox="0 0 412 160" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 size-full">
+                  <rect width={412} height={160} fill="#F2F6FC" />
+                  <path d="M330 0 L412 0 L412 160 L300 160 C315 105 328 50 330 0 Z" fill="#CDD9F0" />
+                  <path d="M0 98 L412 62" stroke="#fff" strokeWidth={9} />
+                  <path d="M130 0 L150 160" stroke="#fff" strokeWidth={5} />
+                  <rect x={46} y={22} width={52} height={32} rx={6} fill="#E7EDF8" />
+                </svg>
+                <div className="absolute left-1/2 top-[46%] -translate-x-1/2 -translate-y-full">
+                  <span className="flex flex-col items-center drop-shadow-[0_3px_6px_rgba(15,27,46,0.25)]">
+                    <span className="flex size-[26px] items-center justify-center rounded-[7px] bg-royal">
+                      <Icon name="mapPin" size={13} color="#fff" strokeWidth={2.2} />
+                    </span>
+                    <span className="size-0 border-x-4 border-t-[5px] border-x-transparent border-t-royal" />
+                  </span>
+                </div>
+              </>
+            )}
+            <div className="pointer-events-none absolute bottom-2 left-[9px] rounded-full border border-line bg-white px-2.5 py-[3px] text-[10px] font-semibold text-royal-dark">
+              {pinMoved
+                ? "Custom spot"
+                : `${profile.business_name ?? "Your business"} · ${profile.area ?? "Philippines"}`}
             </div>
-            <div className="absolute bottom-2 left-[9px] rounded-full border border-line bg-white px-2.5 py-[3px] text-[10px] font-semibold text-royal-dark">
-              {profile.business_name ?? "Your business"} · {profile.area ?? "Philippines"}
-            </div>
+            {pinMoved && (
+              <button
+                onClick={resetPin}
+                className="absolute bottom-2 right-[9px] rounded-full border border-line bg-white px-2.5 py-[3px] text-[10px] font-semibold text-royal-dark hover:bg-bg-soft"
+              >
+                Reset
+              </button>
+            )}
           </div>
           <p className="text-[11px] leading-normal text-ink-muted">
-            Posted at your business address — workers see this pin. Moving the pin is coming soon.
+            {HAS_MAPS_KEY
+              ? "Drag the map to set the exact work spot — workers see this pin."
+              : "Posted at your business address — workers see this pin."}
           </p>
         </div>
         <label className="flex flex-col gap-1.5">

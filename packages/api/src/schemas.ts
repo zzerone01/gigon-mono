@@ -48,6 +48,9 @@ export const updateProfileBody = z.object({
   skills: z.array(z.string().trim().min(1).max(24)).max(8).optional(),
   /** Public URL of an uploaded avatar; null clears the photo. */
   avatarUrl: z.string().url().max(600).nullish(),
+  bio: z.string().max(200).optional(),
+  languages: z.array(z.string().trim().min(1).max(20)).max(4).optional(),
+  availability: z.string().max(60).optional(),
 });
 export type UpdateProfileBody = z.infer<typeof updateProfileBody>;
 
@@ -58,6 +61,11 @@ export const postGigBody = z.object({
   pay: z.number().int().positive(),
   duration: z.string().min(1),
   whenLabel: z.string().min(1),
+  /** Gig start date "YYYY-MM-DD" (PH time); omitted = today (old clients). */
+  startsOn: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   area: z.string().min(1),
   lat: z.number(),
   lng: z.number(),

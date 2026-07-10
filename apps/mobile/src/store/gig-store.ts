@@ -11,6 +11,7 @@ import { create } from "zustand";
 import {
   EMPLOYER_CANCEL_REASONS,
   WORKER_CANCEL_REASONS,
+  buildWorkerStats,
   mapApplicant,
   mapGig,
   firstName,
@@ -18,6 +19,7 @@ import {
   type Gig,
   type GigWithEmployer,
   type ProfileRow,
+  type WorkerStats,
 } from "../data/mock";
 import { api } from "../lib/api";
 import { MACTAN_CENTER } from "../lib/geo";
@@ -109,10 +111,17 @@ interface GigState {
   pfTitle: string;
   pfWhen: string;
   pfTime: string;
+  /** Start date "YYYY-MM-DD"; "" = today. */
+  pfDate: string;
   pfDur: string;
   pfPay: string;
   pfSlots: number;
   pfDesc: string;
+  /** Pin override from the post-form map; null = business address. */
+  pfLat: number | null;
+  pfLng: number | null;
+  /** Set after a successful post — drives the worker-view preview. */
+  lastPostedGigId: string | null;
 
   // shared
   chatMsgs: ChatMsg[];
@@ -127,8 +136,14 @@ interface GigState {
   setOnbFields: (patch: Partial<Pick<GigState, "onbName" | "onbBusiness" | "onbInvite">>) => void;
   completeOnboarding: (coords: { lat: number; lng: number } | null) => Promise<string | null>;
   switchRole: () => Promise<Role>;
-  /** Update skills and/or profile photo; returns an error message or null. */
-  updateProfile: (patch: { skills?: string[]; avatarUrl?: string | null }) => Promise<string | null>;
+  /** Update profile details (skills/photo/bio/…); returns an error message or null. */
+  updateProfile: (patch: {
+    skills?: string[];
+    avatarUrl?: string | null;
+    bio?: string;
+    languages?: string[];
+    availability?: string;
+  }) => Promise<string | null>;
   signOut: () => Promise<void>;
   /** Permanently delete the account server-side, then clear local state. */
   deleteAccount: () => Promise<string | null>;
@@ -161,7 +176,19 @@ interface GigState {
 
   setPostField: (
     patch: Partial<
-      Pick<GigState, "pfType" | "pfTitle" | "pfWhen" | "pfTime" | "pfDur" | "pfPay" | "pfDesc">
+      Pick<
+        GigState,
+        | "pfType"
+        | "pfTitle"
+        | "pfWhen"
+        | "pfTime"
+        | "pfDate"
+        | "pfDur"
+        | "pfPay"
+        | "pfDesc"
+        | "pfLat"
+        | "pfLng"
+      >
     >,
   ) => void;
   setPfSlots: (delta: number) => void;
@@ -217,6 +244,7 @@ export function applicantById(id: string | null | undefined): Applicant {
   const fallback: Applicant = {
     id: "", name: "Worker", init: "?", photo: null, rt: "New", jobs: 0, ns: "0 no-shows",
     nsBad: false, dist: "nearby", tags: "General", note: "Mactan",
+    verified: "", vtags: "", bio: "", langs: "",
   };
   if (!id) return matchedApplicant ?? fallback;
   return applicantIndex[id] ?? (matchedApplicant?.id === id ? matchedApplicant : fallback);
@@ -391,10 +419,14 @@ const initialFlow = {
   pfTitle: "Afternoon café deep clean",
   pfWhen: "Today",
   pfTime: "2:00 – 4:00 PM",
+  pfDate: "",
   pfDur: "2 hrs",
   pfPay: "350",
   pfSlots: 1,
   pfDesc: "Dining area + kitchen wipe-down after the lunch rush. Mop and supplies provided.",
+  pfLat: null as number | null,
+  pfLng: null as number | null,
+  lastPostedGigId: null as string | null,
   chatMsgs: [] as ChatMsg[],
   toast: null as ToastData | null,
   sheet: null as SheetKind | null,
@@ -518,6 +550,9 @@ export const useGigStore = create<GigState>((set, get) => ({
           ...prev,
           ...(patch.skills ? { skills: patch.skills } : {}),
           ...(patch.avatarUrl !== undefined ? { avatar_url: patch.avatarUrl ?? null } : {}),
+          ...(patch.bio !== undefined ? { bio: patch.bio } : {}),
+          ...(patch.languages ? { languages: patch.languages } : {}),
+          ...(patch.availability !== undefined ? { availability: patch.availability } : {}),
         },
       });
     }
@@ -898,9 +933,25 @@ export const useGigStore = create<GigState>((set, get) => ({
     const appRows = (appsRes.data ?? []) as unknown as Array<
       { id: string; worker: ProfileRow }
     >;
+
+    // Platform-verified stats for everyone on screen (applicants + match)
+    const statIds = [
+      ...appRows.map((a) => a.worker.id),
+      ...(matchRes.data?.worker_id ? [matchRes.data.worker_id] : []),
+    ];
+    let workerStats: Record<string, WorkerStats> = {};
+    if (statIds.length) {
+      const [catRes, rehRes, tagRes] = await Promise.all([
+        supabase.from("worker_category_stats").select("*").in("worker_id", statIds),
+        supabase.from("worker_rehire_stats").select("*").in("worker_id", statIds),
+        supabase.from("worker_tag_stats").select("*").in("worker_id", statIds),
+      ]);
+      workerStats = buildWorkerStats(catRes.data ?? [], rehRes.data ?? [], tagRes.data ?? []);
+    }
+
     applicantIndex = {};
     const appVMs = appRows.map((a) => {
-      const vm = mapApplicant(a.worker, bizLoc);
+      const vm = mapApplicant(a.worker, bizLoc, workerStats[a.worker.id]);
       applicantIndex[vm.id] = vm;
       return { appId: a.id, vm };
     });
@@ -917,7 +968,7 @@ export const useGigStore = create<GigState>((set, get) => ({
 
     if (m) {
       eMatchId = m.id;
-      matchedApplicant = mapApplicant(m.worker, bizLoc);
+      matchedApplicant = mapApplicant(m.worker, bizLoc, workerStats[m.worker_id]);
       matchedId = m.worker_id;
       pinIssued = !!m.pin_issued_at;
       const { data: rv } = await supabase
@@ -959,22 +1010,55 @@ export const useGigStore = create<GigState>((set, get) => ({
     const p = st.profile;
     const payNum = parseInt(st.pfPay, 10);
     if (!st.pfTitle.trim() || !payNum) return "Add a title and pay amount.";
+    const whenLabel = `${st.pfWhen} · ${st.pfTime}`;
+    const lat = st.pfLat ?? p?.lat ?? MACTAN_CENTER.lat;
+    const lng = st.pfLng ?? p?.lng ?? MACTAN_CENTER.lng;
+    let posted: { id: string };
     try {
-      await api.post("/api/gigs", {
+      posted = await api.post<{ id: string }>("/api/gigs", {
         title: st.pfTitle.trim(),
         type: st.pfType,
         description: st.pfDesc,
         pay: payNum,
         duration: st.pfDur,
-        whenLabel: `${st.pfWhen} · ${st.pfTime}`,
+        whenLabel,
+        ...(st.pfDate ? { startsOn: st.pfDate } : {}),
         area: p?.area ?? "Philippines",
-        lat: p?.lat ?? MACTAN_CENTER.lat,
-        lng: p?.lng ?? MACTAN_CENTER.lng,
+        lat,
+        lng,
         slots: st.pfSlots,
       });
     } catch (error) {
       return (error as Error).message;
     }
+    // Index the fresh gig locally so /gig/[id]?preview=1 can render the
+    // worker-view immediately (the feed query only returns others' gigs).
+    if (p) {
+      const now = new Date().toISOString();
+      gigIndex[posted.id] = mapGig(
+        {
+          id: posted.id,
+          employer_id: p.id,
+          title: st.pfTitle.trim(),
+          type: st.pfType as GigWithEmployer["type"],
+          description: st.pfDesc,
+          pay: payNum,
+          duration: st.pfDur,
+          when_label: whenLabel,
+          starts_on: st.pfDate || now.slice(0, 10),
+          area: p.area ?? "Philippines",
+          lat,
+          lng,
+          slots: st.pfSlots,
+          status: "POSTED",
+          expires_at: now,
+          created_at: now,
+          employer: p,
+        },
+        { lat, lng },
+      );
+    }
+    set({ lastPostedGigId: posted.id });
     get().showToast("Gig posted — free", "Live now · visible to workers within 3 km");
     await get().loadEmployer();
     return null;

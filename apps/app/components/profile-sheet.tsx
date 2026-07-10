@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
 import { api } from "@/lib/api";
-import { SKILL_OPTIONS, initials, type Profile } from "@/lib/domain";
+import { LANGUAGE_OPTIONS, SKILL_OPTIONS, initials, type Profile } from "@/lib/domain";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { Icon } from "./icons";
 import { Avatar, Chip, Sheet } from "./ui";
@@ -17,9 +17,29 @@ export function ProfileSheet({ profile, onClose }: { profile: Profile; onClose: 
   const fileRef = useRef<HTMLInputElement>(null);
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url);
   const [skills, setSkills] = useState<string[]>(profile.skills);
+  const [languages, setLanguages] = useState<string[]>(profile.languages);
+  const [bio, setBio] = useState(profile.bio);
+  const [availability, setAvailability] = useState(profile.availability);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const isWorker = profile.active_role === "worker";
+
+  const save = async (patch: Record<string, unknown>) => {
+    setError("");
+    try {
+      await api.post("/api/profile", patch);
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  const toggleLanguage = (lang: string) => {
+    const next = languages.includes(lang)
+      ? languages.filter((l) => l !== lang)
+      : [...languages, lang];
+    setLanguages(next);
+    void save({ languages: next });
+  };
 
   const close = () => {
     router.refresh();
@@ -131,22 +151,68 @@ export function ProfileSheet({ profile, onClose }: { profile: Profile; onClose: 
         </p>
 
         {isWorker && (
-          <div className="flex flex-col gap-2">
-            <span className="text-[12.5px] font-semibold">What work do you do?</span>
-            <div className="flex flex-wrap gap-1.5">
-              {SKILL_OPTIONS.map((s) => (
-                <Chip
-                  key={s}
-                  label={s}
-                  active={skills.includes(s)}
-                  onClick={() => void toggleSkill(s)}
-                />
-              ))}
+          <>
+            <div className="flex flex-col gap-2">
+              <span className="text-[12.5px] font-semibold">What work do you do?</span>
+              <div className="flex flex-wrap gap-1.5">
+                {SKILL_OPTIONS.map((s) => (
+                  <Chip
+                    key={s}
+                    label={s}
+                    active={skills.includes(s)}
+                    onClick={() => void toggleSkill(s)}
+                  />
+                ))}
+              </div>
+              <p className="text-[11px] leading-normal text-ink-muted">
+                Shown on your applications instead of “General” — pick everything you can do.
+              </p>
             </div>
-            <p className="text-[11px] leading-normal text-ink-muted">
-              Shown on your applications instead of “General” — pick everything you can do.
-            </p>
-          </div>
+
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[12.5px] font-semibold">
+                About you <span className="font-normal text-ink-muted">(shown to businesses)</span>
+              </span>
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                onBlur={() => {
+                  if (bio !== profile.bio) void save({ bio });
+                }}
+                maxLength={200}
+                placeholder="One or two sentences — e.g. hotel housekeeping for 3 years, fast and careful."
+                className="min-h-[58px] resize-none rounded-[11px] border border-line px-3 py-2.5 text-[12.5px] leading-normal outline-none focus:border-royal"
+              />
+            </label>
+
+            <div className="flex flex-col gap-2">
+              <span className="text-[12.5px] font-semibold">Languages</span>
+              <div className="flex flex-wrap gap-1.5">
+                {LANGUAGE_OPTIONS.map((lang) => (
+                  <Chip
+                    key={lang}
+                    label={lang}
+                    active={languages.includes(lang)}
+                    onClick={() => toggleLanguage(lang)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[12.5px] font-semibold">Usual availability</span>
+              <input
+                value={availability}
+                onChange={(e) => setAvailability(e.target.value)}
+                onBlur={() => {
+                  if (availability !== profile.availability) void save({ availability });
+                }}
+                maxLength={60}
+                placeholder="e.g. Weekdays · 1 – 6 PM"
+                className="h-10 rounded-[10px] border border-line px-3 text-[12.5px] outline-none focus:border-royal"
+              />
+            </label>
+          </>
         )}
 
         {error && <p className="text-[12.5px] font-semibold text-red">{error}</p>}

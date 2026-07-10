@@ -4,9 +4,46 @@ import { AdvancedMarker, APIProvider, Map } from "@vis.gl/react-google-maps";
 
 import { MACTAN_CENTER } from "@/lib/geo";
 import type { GigWithEmployer } from "@/lib/domain";
+import { Icon } from "./icons";
 
 const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID";
+
+export const HAS_MAPS_KEY = !!MAPS_KEY;
+
+/**
+ * Center-pin location picker for the post form: pan the map, the pin stays
+ * centered and `onMove` reports the new center. Renders nothing without a
+ * Maps key — the caller keeps its SVG-art fallback.
+ */
+export function LocationPicker({
+  center,
+  onMove,
+}: {
+  center: { lat: number; lng: number };
+  onMove: (c: { lat: number; lng: number }) => void;
+}) {
+  if (!MAPS_KEY) return null;
+  return (
+    <APIProvider apiKey={MAPS_KEY}>
+      <Map
+        mapId={MAP_ID}
+        defaultCenter={center}
+        defaultZoom={16}
+        gestureHandling="greedy"
+        disableDefaultUI
+        className="absolute inset-0"
+        onCameraChanged={(e) => onMove(e.detail.center)}
+      />
+      <span className="pointer-events-none absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-full flex-col items-center drop-shadow-[0_3px_6px_rgba(15,27,46,0.25)]">
+        <span className="flex size-[26px] items-center justify-center rounded-[7px] bg-royal">
+          <Icon name="mapPin" size={13} color="#fff" strokeWidth={2.2} />
+        </span>
+        <span className="size-0 border-x-4 border-t-[5px] border-x-transparent border-t-royal" />
+      </span>
+    </APIProvider>
+  );
+}
 
 interface MapViewProps {
   gigs: GigWithEmployer[];

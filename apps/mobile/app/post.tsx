@@ -1,23 +1,53 @@
 import { useRouter } from "expo-router";
-import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useMemo, useState } from "react";
+import { Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GIG_TYPE_ICON, Icon } from "../src/components/icon";
-import { PostMapArt } from "../src/components/maps";
 import { Chip, Press } from "../src/components/ui";
 import { GIG_TYPES } from "../src/data/mock";
+import { MACTAN_CENTER } from "../src/lib/geo";
 import { useGigStore } from "../src/store/gig-store";
 import { font, palette, radius } from "../src/theme";
 
 const TYPES = GIG_TYPES;
-const WHENS = ["Today", "Tomorrow"];
 const DURATIONS = ["1 hr", "2 hrs", "3 hrs"];
+
+/** Today + the next 7 days as selectable start dates. */
+function dayChoices() {
+  const out: { value: string; label: string }[] = [];
+  for (let i = 0; i < 8; i++) {
+    const d = new Date(Date.now() + i * 86400000);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+      d.getDate(),
+    ).padStart(2, "0")}`;
+    const label =
+      i === 0
+        ? "Today"
+        : i === 1
+          ? "Tomorrow"
+          : d.toLocaleDateString("en-PH", { weekday: "short", day: "numeric" });
+    out.push({ value, label });
+  }
+  return out;
+}
 
 export default function PostGigScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const s = useGigStore();
   const bizLabel = `${s.profile?.business_name ?? "Your business"} · ${s.profile?.area ?? "Philippines"}`;
+  const days = useMemo(dayChoices, []);
+  const curDate = s.pfDate || days[0]!.value;
+  const bizLat = s.profile?.lat ?? MACTAN_CENTER.lat;
+  const bizLng = s.profile?.lng ?? MACTAN_CENTER.lng;
+  const pinMoved = s.pfLat != null;
+  const [mapKey, setMapKey] = useState(0);
+  const resetPin = () => {
+    s.setPostField({ pfLat: null, pfLng: null });
+    setMapKey((k) => k + 1);
+  };
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -78,22 +108,26 @@ export default function PostGigScreen() {
 
         <View style={{ gap: 7 }}>
           <Text style={styles.label}>When</Text>
-          <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
-            {WHENS.map((w) => (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 6 }}
+          >
+            {days.map((d) => (
               <Chip
-                key={w}
-                label={w}
-                active={s.pfWhen === w}
-                onPress={() => s.setPostField({ pfWhen: w })}
+                key={d.value}
+                label={d.label}
+                active={curDate === d.value}
+                onPress={() => s.setPostField({ pfDate: d.value, pfWhen: d.label })}
                 height={36}
               />
             ))}
-            <TextInput
-              value={s.pfTime}
-              onChangeText={(v) => s.setPostField({ pfTime: v })}
-              style={styles.timeInput}
-            />
-          </View>
+          </ScrollView>
+          <TextInput
+            value={s.pfTime}
+            onChangeText={(v) => s.setPostField({ pfTime: v })}
+            style={styles.timeInput}
+          />
           <View style={{ flexDirection: "row", gap: 6 }}>
             {DURATIONS.map((d) => (
               <Chip
@@ -142,19 +176,46 @@ export default function PostGigScreen() {
         <View style={{ gap: 7 }}>
           <Text style={styles.label}>Location pin</Text>
           <View style={styles.mapBox}>
-            <PostMapArt />
-            <View style={styles.mapPinAnchor}>
+            <MapView
+              key={mapKey}
+              provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
+              style={StyleSheet.absoluteFill}
+              initialRegion={{
+                latitude: s.pfLat ?? bizLat,
+                longitude: s.pfLng ?? bizLng,
+                latitudeDelta: 0.008,
+                longitudeDelta: 0.008,
+              }}
+              onRegionChangeComplete={(r) => {
+                const baseLat = s.pfLat ?? bizLat;
+                const baseLng = s.pfLng ?? bizLng;
+                if (
+                  Math.abs(r.latitude - baseLat) < 1e-5 &&
+                  Math.abs(r.longitude - baseLng) < 1e-5
+                )
+                  return;
+                s.setPostField({ pfLat: r.latitude, pfLng: r.longitude });
+              }}
+              showsCompass={false}
+              toolbarEnabled={false}
+            />
+            <View style={styles.mapPinAnchor} pointerEvents="none">
               <View style={styles.mapPinTile}>
                 <Icon name="mapPin" size={15} color={palette.white} strokeWidth={2.2} />
               </View>
               <View style={styles.mapPinPointer} />
             </View>
-            <View style={[styles.mapChip, { left: 10 }]}>
-              <Text style={styles.mapChipText}>{bizLabel}</Text>
+            <View style={[styles.mapChip, { left: 10 }]} pointerEvents="none">
+              <Text style={styles.mapChipText}>{pinMoved ? "Custom spot" : bizLabel}</Text>
             </View>
+            {pinMoved && (
+              <Press style={[styles.mapChip, { right: 10 }]} onPress={resetPin} haptic={false}>
+                <Text style={styles.mapChipText}>Reset</Text>
+              </Press>
+            )}
           </View>
           <Text style={styles.mapNote}>
-            Posted at your business address — workers see this pin. Moving the pin is coming soon.
+            Drag the map to set the exact work spot — workers see this pin.
           </Text>
         </View>
 
@@ -176,7 +237,10 @@ export default function PostGigScreen() {
           style={styles.cta}
           onPress={async () => {
             const err = await s.postGig();
-            if (!err) router.back();
+            if (err) return;
+            const id = useGigStore.getState().lastPostedGigId;
+            if (id) router.replace({ pathname: "/gig/[id]", params: { id, preview: "1" } });
+            else router.back();
           }}
         >
           <Text style={styles.ctaLabel}>Post gig — free</Text>
@@ -268,7 +332,6 @@ const styles = StyleSheet.create({
     color: palette.ink,
   },
   timeInput: {
-    flex: 1,
     height: 36,
     borderWidth: 1,
     borderColor: palette.line,
@@ -342,7 +405,7 @@ const styles = StyleSheet.create({
     marginTop: -8,
   },
   mapBox: {
-    height: 118,
+    height: 176,
     borderWidth: 1,
     borderColor: palette.line,
     borderRadius: 12,
@@ -352,7 +415,7 @@ const styles = StyleSheet.create({
   mapPinAnchor: {
     position: "absolute",
     left: "50%",
-    top: "46%",
+    top: "50%",
     width: 0,
     height: 0,
     alignItems: "center",

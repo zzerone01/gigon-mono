@@ -1,10 +1,10 @@
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { SKILL_OPTIONS, initials, ratingLabel } from "../data/mock";
+import { LANGUAGE_OPTIONS, SKILL_OPTIONS, initials, ratingLabel } from "../data/mock";
 import { base64ToBytes } from "../lib/base64";
 import { supabase } from "../lib/supabase";
 import { useGigStore } from "../store/gig-store";
@@ -34,6 +34,27 @@ export function ProfileTab() {
   const doDeleteAccount = useGigStore((s) => s.deleteAccount);
   const isWorker = role === "worker";
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [bio, setBio] = useState(profile?.bio ?? "");
+  const [availability, setAvailability] = useState(profile?.availability ?? "");
+
+  useEffect(() => {
+    setBio(profile?.bio ?? "");
+    setAvailability(profile?.availability ?? "");
+    // sync only when a different account loads — not on every profile patch
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id]);
+
+  const saveField = async (patch: { bio?: string; availability?: string }) => {
+    const err = await doUpdateProfile(patch);
+    if (err) Alert.alert("Couldn't save", err);
+  };
+
+  const toggleLanguage = async (lang: string) => {
+    const cur = profile?.languages ?? [];
+    const next = cur.includes(lang) ? cur.filter((l) => l !== lang) : [...cur, lang];
+    const err = await doUpdateProfile({ languages: next });
+    if (err) Alert.alert("Couldn't save languages", err);
+  };
 
   const displayName = isWorker
     ? (profile?.full_name ?? "You")
@@ -183,13 +204,53 @@ export function ProfileTab() {
             <Text style={styles.skillHint}>
               Tap to toggle — shown to businesses on your applications.
             </Text>
-            <View style={styles.infoRow}>
-              <Icon name="clock" size={15} color={palette.slate} />
-              <Text style={styles.infoRowText}>Weekdays · 1 – 6 PM</Text>
+
+            <Text style={styles.fieldLabel}>About you</Text>
+            <TextInput
+              value={bio}
+              onChangeText={setBio}
+              onEndEditing={() => {
+                if (bio !== (profile?.bio ?? "")) saveField({ bio });
+              }}
+              placeholder="One or two sentences — e.g. hotel housekeeping for 3 years, fast and careful."
+              placeholderTextColor={palette.muted}
+              multiline
+              maxLength={200}
+              style={styles.bioInput}
+            />
+
+            <Text style={styles.fieldLabel}>Languages</Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+              {LANGUAGE_OPTIONS.map((lang) => {
+                const on = (profile?.languages ?? []).includes(lang);
+                return (
+                  <Press
+                    key={lang}
+                    onPress={() => toggleLanguage(lang)}
+                    style={[styles.skillChip, !on && styles.skillChipOff]}
+                  >
+                    <Text style={[styles.skillChipText, !on && { color: palette.slate }]}>
+                      {lang}
+                    </Text>
+                  </Press>
+                );
+              })}
             </View>
-            <View style={styles.infoRow}>
-              <Icon name="mapPin" size={15} color={palette.slate} />
-              <Text style={styles.infoRowText}>Preferred radius · 2 km</Text>
+
+            <Text style={styles.fieldLabel}>Usual availability</Text>
+            <View style={styles.availRow}>
+              <Icon name="clock" size={15} color={palette.slate} />
+              <TextInput
+                value={availability}
+                onChangeText={setAvailability}
+                onEndEditing={() => {
+                  if (availability !== (profile?.availability ?? "")) saveField({ availability });
+                }}
+                placeholder="e.g. Weekdays · 1 – 6 PM"
+                placeholderTextColor={palette.muted}
+                maxLength={60}
+                style={styles.availInput}
+              />
             </View>
           </View>
         ) : (
@@ -355,6 +416,43 @@ const styles = StyleSheet.create({
     fontSize: 10.5,
     lineHeight: 15,
     color: palette.muted,
+  },
+  fieldLabel: {
+    fontFamily: font.sansSemiBold,
+    fontSize: 11,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    color: palette.muted,
+    marginTop: 4,
+  },
+  bioInput: {
+    minHeight: 58,
+    borderWidth: 1,
+    borderColor: palette.line,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontFamily: font.sans,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: palette.ink,
+    textAlignVertical: "top",
+  },
+  availRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: palette.line,
+    borderRadius: radius.sm,
+    paddingHorizontal: 12,
+  },
+  availInput: {
+    flex: 1,
+    height: 40,
+    fontFamily: font.sans,
+    fontSize: 12.5,
+    color: palette.ink,
   },
   cameraBadge: {
     position: "absolute",

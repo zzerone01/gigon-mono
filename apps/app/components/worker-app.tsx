@@ -537,24 +537,28 @@ export function WorkerApp({ profile }: { profile: Profile }) {
 
 /* ============================ gig detail sheet ============================ */
 
-function GigDetailSheet({
+export function GigDetailSheet({
   gig,
   applied,
   dist,
+  preview = false,
   onApply,
   onClose,
 }: {
   gig: GigWithEmployer;
   applied: boolean;
   dist: string;
+  /** Employer checking their own fresh post — no apply CTA, no funnel event. */
+  preview?: boolean;
   onApply: () => void;
   onClose: () => void;
 }) {
   const posthog = usePostHog();
   // top of the worker funnel: 탐색 → (gig_viewed) → gig_applied → …
   useEffect(() => {
+    if (preview) return;
     posthog?.capture("gig_viewed", { gigId: gig.id, type: gig.type });
-  }, [posthog, gig.id, gig.type]);
+  }, [posthog, gig.id, gig.type, preview]);
 
   const since = new Date(gig.employer.created_at).toLocaleDateString("en-PH", {
     month: "short",
@@ -566,6 +570,14 @@ function GigDetailSheet({
         <div className="h-1 w-10 rounded-full bg-line" />
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 pb-4 pt-2">
+        {preview && (
+          <div className="flex items-center gap-2 rounded-xl bg-tint px-3 py-2">
+            <Icon name="info" size={14} color="#0B2E6F" className="shrink-0" />
+            <span className="text-xs font-semibold text-royal-dark">
+              Live! This is how workers see your post.
+            </span>
+          </div>
+        )}
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-tint px-2.5 py-[3px] text-[10px] font-semibold uppercase tracking-[0.08em] text-royal-dark">
@@ -678,17 +690,31 @@ function GigDetailSheet({
         </div>
       </div>
       <div className="shrink-0 border-t border-line bg-white px-5 pb-4 pt-2.5">
-        <button
-          onClick={onApply}
-          disabled={applied}
-          className={`h-[50px] w-full rounded-[10px] text-[14.5px] font-semibold ${
-            applied
-              ? "border-[1.5px] border-royal bg-white text-royal"
-              : "bg-amber text-ink hover:bg-[#E99B16]"
-          }`}
-        >
-          {applied ? "Applied ✓ — waiting for reply" : "Apply — 1 tap"}
-        </button>
+        {preview ? (
+          <>
+            <button
+              onClick={onClose}
+              className="h-[50px] w-full rounded-[10px] bg-royal text-[14.5px] font-semibold text-white hover:bg-royal-dark"
+            >
+              Done — back to your postings
+            </button>
+            <p className="mt-[7px] text-center text-[10px] text-ink-muted">
+              Workers see an &ldquo;Apply — 1 tap&rdquo; button here.
+            </p>
+          </>
+        ) : (
+          <button
+            onClick={onApply}
+            disabled={applied}
+            className={`h-[50px] w-full rounded-[10px] text-[14.5px] font-semibold ${
+              applied
+                ? "border-[1.5px] border-royal bg-white text-royal"
+                : "bg-amber text-ink hover:bg-[#E99B16]"
+            }`}
+          >
+            {applied ? "Applied ✓ — waiting for reply" : "Apply — 1 tap"}
+          </button>
+        )}
       </div>
     </Sheet>
   );

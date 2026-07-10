@@ -83,9 +83,26 @@ export default function ApplicantsScreen() {
                     </View>
                     <Text style={styles.appMeta}>
                       {a.tags} · {a.note}
+                      {a.langs ? ` · ${a.langs}` : ""}
                     </Text>
                   </View>
                 </View>
+                {(!!a.verified || !!a.vtags || !!a.bio) && (
+                  <View style={styles.detailBlock}>
+                    {!!a.verified && (
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                        <Icon name="check" size={11} color={palette.success} strokeWidth={2.6} />
+                        <Text style={styles.verifiedLine}>{a.verified}</Text>
+                      </View>
+                    )}
+                    {!!a.vtags && <Text style={styles.vtagsLine}>{a.vtags}</Text>}
+                    {!!a.bio && (
+                      <Text style={styles.bioLine} numberOfLines={2}>
+                        “{a.bio}”
+                      </Text>
+                    )}
+                  </View>
+                )}
                 <View style={styles.statsRow}>
                   <Stat value={a.dist} label="AWAY" color={palette.royal} />
                   <Stat value={a.rt === "New" ? "New" : `${a.rt}★`} label="RATING" color={palette.ink} />
@@ -227,6 +244,28 @@ const styles = StyleSheet.create({
     fontFamily: font.sans,
     fontSize: 11.5,
     color: palette.muted,
+  },
+  detailBlock: {
+    paddingHorizontal: 14,
+    paddingBottom: 10,
+    gap: 3,
+  },
+  verifiedLine: {
+    flex: 1,
+    fontFamily: font.sansSemiBold,
+    fontSize: 11,
+    color: palette.success,
+  },
+  vtagsLine: {
+    fontFamily: font.sans,
+    fontSize: 11,
+    color: palette.slate,
+  },
+  bioLine: {
+    fontFamily: font.sans,
+    fontSize: 11.5,
+    lineHeight: 16.5,
+    color: palette.body,
   },
   statsRow: {
     flexDirection: "row",

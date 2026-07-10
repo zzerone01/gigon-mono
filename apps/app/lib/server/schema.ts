@@ -7,6 +7,7 @@ import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
+  date,
   doublePrecision,
   integer,
   jsonb,
@@ -62,6 +63,9 @@ export const profiles = pgTable("profiles", {
   lng: doublePrecision("lng"),
   skills: text("skills").array().notNull().default([]),
   avatarUrl: text("avatar_url"),
+  bio: text("bio").notNull().default(""),
+  languages: text("languages").array().notNull().default([]),
+  availability: text("availability").notNull().default(""),
   businessName: text("business_name"),
   employerVerified: boolean("employer_verified").notNull().default(false),
   ratingSum: integer("rating_sum").notNull().default(0),
@@ -92,6 +96,9 @@ export const gigs = pgTable("gigs", {
   lat: doublePrecision("lat").notNull(),
   lng: doublePrecision("lng").notNull(),
   slots: integer("slots").notNull().default(1),
+  startsOn: date("starts_on")
+    .notNull()
+    .default(sql`(now() at time zone 'Asia/Manila')::date`),
   status: gigStatus("status").notNull().default("POSTED"),
   expiresAt: timestamp("expires_at", { withTimezone: true })
     .notNull()

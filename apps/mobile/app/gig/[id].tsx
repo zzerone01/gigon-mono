@@ -9,12 +9,13 @@ import { gigById, useGigStore } from "../../src/store/gig-store";
 import { font, palette, radius } from "../../src/theme";
 
 export default function GigDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, preview } = useLocalSearchParams<{ id: string; preview?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const gig = gigById(id);
   const applied = useGigStore((s) => !!s.applied[gig.id]);
   const apply = useGigStore((s) => s.apply);
+  const isPreview = preview === "1";
 
   return (
     <View style={styles.screen}>
@@ -42,6 +43,14 @@ export default function GigDetailScreen() {
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
+        {isPreview && (
+          <View style={styles.previewBanner}>
+            <Icon name="info" size={14} color={palette.royalDark} />
+            <Text style={styles.previewBannerText}>
+              Live! This is how workers see your post.
+            </Text>
+          </View>
+        )}
         <View style={{ gap: 6 }}>
           <View style={styles.metaRow}>
             <View style={styles.typeBadge}>
@@ -118,22 +127,38 @@ export default function GigDetailScreen() {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
-        <Press
-          style={[
-            styles.cta,
-            applied
-              ? { backgroundColor: palette.white, borderWidth: 1.5, borderColor: palette.royal }
-              : { backgroundColor: palette.amber },
-          ]}
-          onPress={() => apply(gig.id)}
-        >
-          <Text style={[styles.ctaLabel, { color: applied ? palette.royal : palette.ink }]}>
-            {applied ? "Applied ✓ — waiting for reply" : "Apply — 1 tap"}
-          </Text>
-        </Press>
-        <Text style={styles.footerNote}>
-          One tap — no cover letter. The business sees your rating and history.
-        </Text>
+        {isPreview ? (
+          <>
+            <Press
+              style={[styles.cta, { backgroundColor: palette.royal }]}
+              onPress={() => router.back()}
+            >
+              <Text style={[styles.ctaLabel, { color: palette.white }]}>Done — back to postings</Text>
+            </Press>
+            <Text style={styles.footerNote}>
+              Workers see an “Apply — 1 tap” button here.
+            </Text>
+          </>
+        ) : (
+          <>
+            <Press
+              style={[
+                styles.cta,
+                applied
+                  ? { backgroundColor: palette.white, borderWidth: 1.5, borderColor: palette.royal }
+                  : { backgroundColor: palette.amber },
+              ]}
+              onPress={() => apply(gig.id)}
+            >
+              <Text style={[styles.ctaLabel, { color: applied ? palette.royal : palette.ink }]}>
+                {applied ? "Applied ✓ — waiting for reply" : "Apply — 1 tap"}
+              </Text>
+            </Press>
+            <Text style={styles.footerNote}>
+              One tap — no cover letter. The business sees your rating and history.
+            </Text>
+          </>
+        )}
       </View>
     </View>
   );
@@ -217,6 +242,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 16,
     gap: 13,
+  },
+  previewBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: palette.tint,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  previewBannerText: {
+    flex: 1,
+    fontFamily: font.sansSemiBold,
+    fontSize: 12,
+    color: palette.royalDark,
   },
   metaRow: {
     flexDirection: "row",
