@@ -136,13 +136,15 @@ interface GigState {
   setOnbFields: (patch: Partial<Pick<GigState, "onbName" | "onbBusiness" | "onbInvite">>) => void;
   completeOnboarding: (coords: { lat: number; lng: number } | null) => Promise<string | null>;
   switchRole: () => Promise<Role>;
-  /** Update profile details (skills/photo/bio/…); returns an error message or null. */
+  /** Update profile details (skills/photo/bio/coords/…); returns an error message or null. */
   updateProfile: (patch: {
     skills?: string[];
     avatarUrl?: string | null;
     bio?: string;
     languages?: string[];
     availability?: string;
+    lat?: number;
+    lng?: number;
   }) => Promise<string | null>;
   signOut: () => Promise<void>;
   /** Permanently delete the account server-side, then clear local state. */
@@ -553,6 +555,9 @@ export const useGigStore = create<GigState>((set, get) => ({
           ...(patch.bio !== undefined ? { bio: patch.bio } : {}),
           ...(patch.languages ? { languages: patch.languages } : {}),
           ...(patch.availability !== undefined ? { availability: patch.availability } : {}),
+          ...(patch.lat !== undefined && patch.lng !== undefined
+            ? { lat: patch.lat, lng: patch.lng }
+            : {}),
         },
       });
     }

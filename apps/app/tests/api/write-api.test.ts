@@ -324,7 +324,9 @@ describe("PIN lockout & expiry", () => {
     expect(during.json.error).toBe("locked");
     expect(during.json.locked_for).toBeGreaterThan(0);
 
-    await sql`update match_pins set locked_until = now() - interval '1 second' where match_id = ${matchId}`;
+    // generous margin: the route compares against JS time, and the docker
+    // VM's postgres clock can drift a few seconds from the host
+    await sql`update match_pins set locked_until = now() - interval '30 seconds' where match_id = ${matchId}`;
     const after = await call(verifyPin, worker, { pin }, matchId);
     expect(after.json).toEqual({ ok: true });
   });

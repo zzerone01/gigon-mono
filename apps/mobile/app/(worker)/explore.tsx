@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -9,7 +9,8 @@ import { GIG_TYPE_ICON, Icon } from "../../src/components/icon";
 import { PricePin } from "../../src/components/maps";
 import { Card, Chip, Press } from "../../src/components/ui";
 import { FILTERS, Gig } from "../../src/data/mock";
-import { MACTAN_CENTER } from "../../src/lib/geo";
+import { MACTAN_CENTER, distanceMeters } from "../../src/lib/geo";
+import { useLiveLocation } from "../../src/lib/use-live-location";
 import { useGigStore } from "../../src/store/gig-store";
 import { font, palette, radius } from "../../src/theme";
 
@@ -50,16 +51,49 @@ export default function ExploreScreen() {
   const feed = useGigStore((s) => s.feed);
   const profile = useGigStore((s) => s.profile);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
-  const [view, setView] = useState<"list" | "map">("list");
+  const [view, setView] = useState<"list" | "map">("map");
+  const mapRef = useRef<MapView>(null);
+
+  // Fresh fix → persist (>150 m moved) and re-sort the feed from the new spot.
+  const onFix = useCallback(async (c: { lat: number; lng: number }) => {
+    const s = useGigStore.getState();
+    const p = s.profile;
+    if (p?.lat != null && p?.lng != null && distanceMeters(c, { lat: p.lat, lng: p.lng }) < 150)
+      return;
+    await s.updateProfile({ lat: c.lat, lng: c.lng });
+    await s.loadWorker();
+  }, []);
+  const {
+    permission: locPerm,
+    coords: liveYou,
+    dismissed: locDismissed,
+    request: requestLoc,
+    dismiss: dismissLoc,
+    openSettings,
+  } = useLiveLocation(onFix);
 
   const gigs = useMemo(
     () => feed.filter((g) => filter === "All" || g.type === filter),
     [feed, filter],
   );
   const you = {
-    latitude: profile?.lat ?? MACTAN_CENTER.lat,
-    longitude: profile?.lng ?? MACTAN_CENTER.lng,
+    latitude: liveYou?.lat ?? profile?.lat ?? MACTAN_CENTER.lat,
+    longitude: liveYou?.lng ?? profile?.lng ?? MACTAN_CENTER.lng,
   };
+
+  // Recenter the live map when the first (or a fresh) fix lands.
+  useEffect(() => {
+    if (!liveYou) return;
+    mapRef.current?.animateToRegion(
+      {
+        latitude: liveYou.lat,
+        longitude: liveYou.lng,
+        latitudeDelta: 0.045,
+        longitudeDelta: 0.045,
+      },
+      600,
+    );
+  }, [liveYou]);
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -129,11 +163,12 @@ export default function ExploreScreen() {
         ) : (
           <View style={StyleSheet.absoluteFill}>
             <MapView
+              ref={mapRef}
               provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
               style={StyleSheet.absoluteFill}
               initialRegion={{
-                latitude: MACTAN_CENTER.lat,
-                longitude: MACTAN_CENTER.lng,
+                latitude: you.latitude,
+                longitude: you.longitude,
                 latitudeDelta: 0.045,
                 longitudeDelta: 0.045,
               }}
@@ -163,9 +198,56 @@ export default function ExploreScreen() {
               <LiveDot />
               <Text style={styles.mapChipText}>{gigs.length} gigs open now</Text>
             </View>
-            <View style={[styles.mapChip, { right: 12, top: 12 }]}>
-              <Text style={styles.mapChipMuted}>Pilot zone · 2–3 km</Text>
-            </View>
+
+            {/* location consent cycle */}
+            {locPerm === "granted" || locPerm === "checking" ? (
+              <View style={[styles.mapChip, { right: 12, top: 12 }]}>
+                <Text style={styles.mapChipMuted}>Pilot zone · 2–3 km</Text>
+              </View>
+            ) : locPerm === "prompt" ? (
+              <Press
+                style={[styles.mapChip, styles.locChip, { right: 12, top: 12 }]}
+                onPress={requestLoc}
+                haptic={false}
+              >
+                <Icon name="navigate" size={12} color={palette.royal} strokeWidth={2.2} />
+                <Text style={styles.locChipText}>Enable location</Text>
+              </Press>
+            ) : (
+              <Press
+                style={[styles.mapChip, styles.locChip, { right: 12, top: 12 }]}
+                onPress={openSettings}
+                haptic={false}
+              >
+                <Icon name="alertTriangle" size={12} color={palette.amber} strokeWidth={2.2} />
+                <Text style={styles.locChipText}>Location off · Settings</Text>
+              </Press>
+            )}
+
+            {locPerm === "prompt" && !locDismissed && (
+              <View style={styles.locCard}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <View style={styles.locCardIcon}>
+                    <Icon name="navigate" size={17} color={palette.royal} />
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={styles.locCardTitle}>See gigs around you</Text>
+                    <Text style={styles.locCardBody}>
+                      Sort gigs by real distance. Businesses only ever see an approximate distance
+                      — never your exact spot.
+                    </Text>
+                  </View>
+                </View>
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  <Press style={styles.locBtnGhost} onPress={dismissLoc} haptic={false}>
+                    <Text style={styles.locBtnGhostText}>Not now</Text>
+                  </Press>
+                  <Press style={styles.locBtnPrimary} onPress={requestLoc}>
+                    <Text style={styles.locBtnPrimaryText}>Allow location</Text>
+                  </Press>
+                </View>
+              </View>
+            )}
           </View>
         )}
 
@@ -406,6 +488,78 @@ const styles = StyleSheet.create({
     fontFamily: font.sansMedium,
     fontSize: 10.5,
     color: palette.slate,
+  },
+  locChip: {
+    gap: 5,
+  },
+  locChipText: {
+    fontFamily: font.sansSemiBold,
+    fontSize: 10.5,
+    color: palette.royalDark,
+  },
+  locCard: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    bottom: 84,
+    gap: 12,
+    backgroundColor: palette.white,
+    borderWidth: 1,
+    borderColor: palette.line,
+    borderRadius: 16,
+    padding: 15,
+    shadowColor: palette.ink,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  locCardIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: palette.tint,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  locCardTitle: {
+    fontFamily: font.sansSemiBold,
+    fontSize: 13.5,
+    color: palette.ink,
+  },
+  locCardBody: {
+    fontFamily: font.sans,
+    fontSize: 11.5,
+    lineHeight: 16.5,
+    color: palette.slate,
+  },
+  locBtnGhost: {
+    flex: 1,
+    height: 40,
+    borderWidth: 1,
+    borderColor: palette.line,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: palette.white,
+  },
+  locBtnGhostText: {
+    fontFamily: font.sansSemiBold,
+    fontSize: 12,
+    color: palette.slate,
+  },
+  locBtnPrimary: {
+    flex: 1.6,
+    height: 40,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: palette.royal,
+  },
+  locBtnPrimaryText: {
+    fontFamily: font.sansSemiBold,
+    fontSize: 12,
+    color: palette.white,
   },
   pill: {
     position: "absolute",

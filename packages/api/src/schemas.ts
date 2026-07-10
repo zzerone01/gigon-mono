@@ -44,14 +44,21 @@ export const setRoleBody = z.object({
 });
 export type SetRoleBody = z.infer<typeof setRoleBody>;
 
-export const updateProfileBody = z.object({
-  skills: z.array(z.string().trim().min(1).max(24)).max(8).optional(),
-  /** Public URL of an uploaded avatar; null clears the photo. */
-  avatarUrl: z.string().url().max(600).nullish(),
-  bio: z.string().max(200).optional(),
-  languages: z.array(z.string().trim().min(1).max(20)).max(4).optional(),
-  availability: z.string().max(60).optional(),
-});
+export const updateProfileBody = z
+  .object({
+    skills: z.array(z.string().trim().min(1).max(24)).max(8).optional(),
+    /** Public URL of an uploaded avatar; null clears the photo. */
+    avatarUrl: z.string().url().max(600).nullish(),
+    bio: z.string().max(200).optional(),
+    languages: z.array(z.string().trim().min(1).max(20)).max(4).optional(),
+    availability: z.string().max(60).optional(),
+    /** Fresh device location (both or neither) — keeps distances honest. */
+    lat: z.number().min(-90).max(90).optional(),
+    lng: z.number().min(-180).max(180).optional(),
+  })
+  .refine((b) => (b.lat === undefined) === (b.lng === undefined), {
+    message: "lat and lng must be sent together",
+  });
 export type UpdateProfileBody = z.infer<typeof updateProfileBody>;
 
 export const postGigBody = z.object({

@@ -93,7 +93,7 @@ export function MapView({ gigs, you, appliedIds, onOpen }: MapViewProps) {
       <APIProvider apiKey={MAPS_KEY}>
         <Map
           mapId={MAP_ID}
-          defaultCenter={MACTAN_CENTER}
+          defaultCenter={you}
           defaultZoom={14}
           gestureHandling="greedy"
           disableDefaultUI

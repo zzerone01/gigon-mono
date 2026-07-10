@@ -28,6 +28,7 @@ import {
 import { api } from "@/lib/api";
 import { MACTAN_CENTER, distanceMeters, formatDistance } from "@/lib/geo";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { useLiveLocation } from "@/lib/use-live-location";
 
 type EngagedGig = Gig & { employer: Profile };
 type MyMatch = Match & { gig: EngagedGig };
@@ -39,10 +40,29 @@ export function WorkerApp({ profile }: { profile: Profile }) {
   const supabase = supabaseBrowser();
   const toast = useToast();
   const me = profile.id;
-  const you = useMemo(
+  const saved = useMemo(
     () => ({ lat: profile.lat ?? MACTAN_CENTER.lat, lng: profile.lng ?? MACTAN_CENTER.lng }),
     [profile.lat, profile.lng],
   );
+  // Persist a fresh fix so employer-side "away" distances stay honest —
+  // only when it actually moved (>150 m) from the stored location.
+  const persistFix = useCallback(
+    (c: { lat: number; lng: number }) => {
+      if (profile.lat != null && profile.lng != null) {
+        if (distanceMeters(c, { lat: profile.lat, lng: profile.lng }) < 150) return;
+      }
+      api.post("/api/profile", { lat: c.lat, lng: c.lng }).catch(() => {});
+    },
+    [profile.lat, profile.lng],
+  );
+  const {
+    permission: locPerm,
+    coords: liveYou,
+    dismissed: locDismissed,
+    request: requestLoc,
+    dismiss: dismissLoc,
+  } = useLiveLocation(persistFix);
+  const you = liveYou ?? saved;
 
   const [gigs, setGigs] = useState<GigWithEmployer[]>([]);
   const [apps, setApps] = useState<MyApplication[]>([]);
@@ -51,7 +71,8 @@ export function WorkerApp({ profile }: { profile: Profile }) {
   const [disputeTicket, setDisputeTicket] = useState<string | null>(null);
 
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
-  const [view, setView] = useState<"list" | "map">("list");
+  const [view, setView] = useState<"list" | "map">("map");
+  const [locHelpOpen, setLocHelpOpen] = useState(false);
   const [detail, setDetail] = useState<GigWithEmployer | null>(null);
   const [pinOpen, setPinOpen] = useState(false);
   const [rateOpen, setRateOpen] = useState(false);
@@ -438,14 +459,80 @@ export function WorkerApp({ profile }: { profile: Profile }) {
 
         {/* map pane — always on desktop, toggled on mobile */}
         <div className={`relative min-h-0 flex-1 bg-tint-soft ${view === "map" ? "block" : "hidden"} md:block`}>
-          <MapView gigs={feed} you={you} appliedIds={appliedIds} onOpen={setDetail} />
+          <MapView
+            key={liveYou ? "live" : "saved"}
+            gigs={feed}
+            you={you}
+            appliedIds={appliedIds}
+            onOpen={setDetail}
+          />
           <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full border border-line bg-white px-[13px] py-[7px] text-[11.5px] font-semibold shadow-[0_8px_24px_rgba(15,27,46,0.06)] md:left-4 md:top-3.5">
             <LiveDot />
             {feed.length} gigs open now
           </div>
-          <div className="absolute right-3 top-3 rounded-full border border-line bg-white px-3 py-[7px] text-[10.5px] font-medium text-slate shadow-[0_8px_24px_rgba(15,27,46,0.06)] md:right-4 md:top-3.5">
-            Pilot zone · 2–3 km
-          </div>
+
+          {/* location consent cycle */}
+          {locPerm === "granted" || locPerm === "unsupported" || locPerm === "checking" ? (
+            <div className="absolute right-3 top-3 rounded-full border border-line bg-white px-3 py-[7px] text-[10.5px] font-medium text-slate shadow-[0_8px_24px_rgba(15,27,46,0.06)] md:right-4 md:top-3.5">
+              Pilot zone · 2–3 km
+            </div>
+          ) : locPerm === "prompt" ? (
+            <button
+              onClick={requestLoc}
+              className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full border border-royal bg-white px-3 py-[7px] text-[10.5px] font-semibold text-royal shadow-[0_8px_24px_rgba(15,27,46,0.06)] md:right-4 md:top-3.5"
+            >
+              <Icon name="navigate" size={12} strokeWidth={2.2} />
+              Enable location
+            </button>
+          ) : (
+            <div className="absolute right-3 top-3 flex flex-col items-end gap-1.5 md:right-4 md:top-3.5">
+              <button
+                onClick={() => setLocHelpOpen((v) => !v)}
+                className="flex items-center gap-1.5 rounded-full border border-line bg-white px-3 py-[7px] text-[10.5px] font-semibold text-ink shadow-[0_8px_24px_rgba(15,27,46,0.06)]"
+              >
+                <Icon name="alertTriangle" size={12} color="#F5A623" />
+                Location off
+              </button>
+              {locHelpOpen && (
+                <div className="w-[230px] rounded-[12px] border border-line bg-white p-3 text-[10.5px] leading-normal text-ink-body shadow-[0_12px_32px_rgba(15,27,46,0.15)]">
+                  <span className="font-semibold text-ink">Location is blocked for this site.</span>{" "}
+                  Allow it in your browser&apos;s site settings (the icon next to the address bar) —
+                  the map picks it up automatically. Until then we use your saved area.
+                </div>
+              )}
+            </div>
+          )}
+
+          {locPerm === "prompt" && !locDismissed && (
+            <div className="absolute inset-x-4 bottom-24 z-10 mx-auto flex max-w-[340px] flex-col gap-2.5 rounded-[16px] border border-line bg-white p-4 shadow-[0_12px_32px_rgba(15,27,46,0.18)] md:bottom-6">
+              <div className="flex items-center gap-2.5">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-tint">
+                  <Icon name="navigate" size={17} color="#103F96" />
+                </span>
+                <div className="flex flex-col">
+                  <span className="text-[13.5px] font-semibold">See gigs around you</span>
+                  <span className="text-[11.5px] leading-snug text-slate">
+                    Sort gigs by real distance. Businesses only ever see an approximate distance —
+                    never your exact spot.
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={dismissLoc}
+                  className="h-10 flex-1 rounded-[10px] border border-line bg-white text-xs font-semibold text-slate hover:bg-bg-soft"
+                >
+                  Not now
+                </button>
+                <button
+                  onClick={requestLoc}
+                  className="h-10 flex-[1.6] rounded-[10px] bg-royal text-xs font-semibold text-white hover:bg-royal-dark"
+                >
+                  Allow location
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <button
