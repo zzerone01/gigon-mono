@@ -11,7 +11,20 @@ export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 export type GigRow = Database["public"]["Tables"]["gigs"]["Row"];
 export type GigWithEmployer = GigRow & { employer: ProfileRow };
 
-export type GigType = "Cleaning" | "Laundry" | "Delivery" | "Errands";
+export const GIG_TYPES = [
+  "Cleaning",
+  "Laundry",
+  "Delivery",
+  "Errands",
+  "Construction",
+  "Kitchen Help",
+  "Events",
+  "Others",
+] as const;
+export type GigType = (typeof GIG_TYPES)[number];
+
+/** Worker skill options — mirrors the gig categories so applicant tags line up. */
+export const SKILL_OPTIONS = GIG_TYPES.filter((t) => t !== "Others");
 
 /** Gig view model (fields the screens consume). */
 export interface Gig {
@@ -30,7 +43,9 @@ export interface Gig {
   desc: string;
   er: string;
   einit: string;
+  ephoto: string | null;
   erate: string;
+  ereviews: number;
   ejobs: number;
   since: string;
 }
@@ -40,6 +55,7 @@ export interface Applicant {
   id: string;
   name: string;
   init: string;
+  photo: string | null;
   rt: string;
   jobs: number;
   ns: string;
@@ -49,7 +65,7 @@ export interface Applicant {
   note: string;
 }
 
-export const FILTERS = ["All", "Cleaning", "Laundry", "Delivery", "Errands"] as const;
+export const FILTERS = ["All", ...GIG_TYPES] as const;
 
 export const WORKER_RATE_TAGS = [
   "Paid exactly as agreed",
@@ -118,7 +134,9 @@ export function mapGig(row: GigWithEmployer, you: { lat: number; lng: number }):
     desc: row.description,
     er: e.full_name,
     einit: initials(e.business_name ?? e.full_name),
+    ephoto: e.avatar_url,
     erate: ratingLabel(e),
+    ereviews: e.rating_count,
     ejobs: e.jobs_completed,
     since: new Date(e.created_at).toLocaleDateString("en-PH", {
       month: "short",
@@ -133,6 +151,7 @@ export function mapApplicant(p: ProfileRow, bizLoc: { lat: number; lng: number }
     id: p.id,
     name: p.full_name,
     init: initials(p.full_name),
+    photo: p.avatar_url,
     rt: ratingLabel(p),
     jobs: p.jobs_completed,
     ns:

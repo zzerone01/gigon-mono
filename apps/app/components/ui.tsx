@@ -24,19 +24,27 @@ export function LiveDot({ className = "" }: { className?: string }) {
 
 export function Avatar({
   name,
+  src,
   size = 42,
   className = "bg-tint text-royal-dark",
 }: {
   name: string;
+  /** Profile photo URL — falls back to the initials when absent. */
+  src?: string | null;
   size?: number;
   className?: string;
 }) {
   return (
     <span
-      className={`flex shrink-0 items-center justify-center rounded-xl font-bold ${className}`}
+      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-xl font-bold ${className}`}
       style={{ width: size, height: size, fontSize: size * 0.33 }}
     >
-      {name}
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element -- remote Supabase storage URL, fixed tiny size
+        <img src={src} alt="" className="size-full object-cover" />
+      ) : (
+        name
+      )}
     </span>
   );
 }

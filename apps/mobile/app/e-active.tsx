@@ -103,6 +103,10 @@ export default function EmployerActiveScreen() {
             <Press style={styles.issueCta} onPress={issuePin}>
               <Text style={styles.issueCtaLabel}>Issue completion PIN</Text>
             </Press>
+            <Text style={styles.issueNote}>
+              Until {first} enters the PIN the gig stays open and reviews stay locked — it never
+              moves money.
+            </Text>
           </View>
         )}
 
@@ -310,6 +314,12 @@ const styles = StyleSheet.create({
     fontFamily: font.sansSemiBold,
     fontSize: 14.5,
     color: palette.ink,
+  },
+  issueNote: {
+    fontFamily: font.sans,
+    fontSize: 10.5,
+    lineHeight: 15.5,
+    color: palette.muted,
   },
   pinCard: {
     gap: 12,

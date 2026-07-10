@@ -5,10 +5,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GIG_TYPE_ICON, Icon } from "../src/components/icon";
 import { PostMapArt } from "../src/components/maps";
 import { Chip, Press } from "../src/components/ui";
+import { GIG_TYPES } from "../src/data/mock";
 import { useGigStore } from "../src/store/gig-store";
 import { font, palette, radius } from "../src/theme";
 
-const TYPES = ["Cleaning", "Laundry", "Delivery", "Errands"];
+const TYPES = GIG_TYPES;
 const WHENS = ["Today", "Tomorrow"];
 const DURATIONS = ["1 hr", "2 hrs", "3 hrs"];
 
@@ -151,10 +152,10 @@ export default function PostGigScreen() {
             <View style={[styles.mapChip, { left: 10 }]}>
               <Text style={styles.mapChipText}>{bizLabel}</Text>
             </View>
-            <View style={[styles.mapChip, { right: 10 }]}>
-              <Text style={styles.mapChipMuted}>Adjust</Text>
-            </View>
           </View>
+          <Text style={styles.mapNote}>
+            Posted at your business address — workers see this pin. Moving the pin is coming soon.
+          </Text>
         </View>
 
         <View style={{ gap: 7 }}>
@@ -398,10 +399,11 @@ const styles = StyleSheet.create({
     fontSize: 10.5,
     color: palette.royalDark,
   },
-  mapChipMuted: {
-    fontFamily: font.sansMedium,
-    fontSize: 10.5,
-    color: palette.slate,
+  mapNote: {
+    fontFamily: font.sans,
+    fontSize: 11,
+    lineHeight: 16,
+    color: palette.muted,
   },
   textArea: {
     minHeight: 68,

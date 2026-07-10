@@ -73,7 +73,7 @@ export default function GigDetailScreen() {
         </View>
 
         <View style={styles.employerCard}>
-          <Avatar initials={gig.einit} size={42} />
+          <Avatar initials={gig.einit} uri={gig.ephoto} size={42} />
           <View style={{ flex: 1, gap: 2 }}>
             <View style={styles.employerNameRow}>
               <Text style={styles.employerName}>{gig.er}</Text>
@@ -85,7 +85,9 @@ export default function GigDetailScreen() {
             <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
               <Icon name="star" size={12} fill={palette.amber} />
               <Text style={styles.employerMeta}>
-                {gig.erate} · {gig.ejobs} gigs · since {gig.since}
+                {gig.erate}
+                {gig.ereviews > 0 ? ` (${gig.ereviews} reviews)` : ""} · {gig.ejobs} gigs · since{" "}
+                {gig.since}
               </Text>
             </View>
           </View>

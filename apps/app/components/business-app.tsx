@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon, GIG_TYPE_ICON } from "@/components/icons";
 import { CancelSheet, ChatSheet, RateSheet } from "@/components/sheets";
 import { useToast } from "@/components/shell";
-import { Chip, LiveDot, MiniStepper, MonoBadge, Sheet } from "@/components/ui";
+import { Avatar, Chip, LiveDot, MiniStepper, MonoBadge, Sheet } from "@/components/ui";
 import {
   EMPLOYER_CANCEL_REASONS,
   EMPLOYER_RATE_TAGS,
@@ -440,9 +440,12 @@ export function BusinessApp({ profile }: { profile: Profile }) {
                           className="anim-fade flex flex-col overflow-hidden rounded-[14px] border border-line bg-white shadow-[0_1px_2px_rgba(15,27,46,0.04),0_8px_24px_rgba(15,27,46,0.06)]"
                         >
                           <div className="flex items-center gap-3 px-3.5 pb-[9px] pt-3">
-                            <span className="flex size-[42px] shrink-0 items-center justify-center rounded-xl bg-tint text-sm font-bold text-royal-dark">
-                              {initials(w.full_name)}
-                            </span>
+                            <Avatar
+                              name={initials(w.full_name)}
+                              src={w.avatar_url}
+                              size={42}
+                              className="bg-tint text-royal-dark"
+                            />
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5">
                                 <span className="truncate text-sm font-semibold">{w.full_name}</span>
@@ -508,9 +511,12 @@ export function BusinessApp({ profile }: { profile: Profile }) {
             {match && (
               <div className="contents md:flex md:max-w-[720px] md:flex-col md:gap-3">
                 <div className="flex items-center gap-3 rounded-[14px] border-[1.5px] border-royal bg-tint-soft p-3 px-3.5">
-                  <span className="flex size-[42px] shrink-0 items-center justify-center rounded-xl bg-royal text-sm font-bold text-white">
-                    {initials(match.worker.full_name)}
-                  </span>
+                  <Avatar
+                    name={initials(match.worker.full_name)}
+                    src={match.worker.avatar_url}
+                    size={42}
+                    className="bg-royal text-white"
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold">{match.worker.full_name}</div>
                     <div className="text-[11px] text-slate">
@@ -552,6 +558,10 @@ export function BusinessApp({ profile }: { profile: Profile }) {
                     >
                       Issue completion PIN
                     </button>
+                    <span className="text-[10.5px] leading-normal text-ink-muted">
+                      Until {workerFirst} enters the PIN the gig stays open and reviews stay locked
+                      — it never moves money.
+                    </span>
                   </div>
                 )}
 
@@ -954,6 +964,9 @@ function PostGigSheet({
               {profile.business_name ?? "Your business"} · {profile.area ?? "Philippines"}
             </div>
           </div>
+          <p className="text-[11px] leading-normal text-ink-muted">
+            Posted at your business address — workers see this pin. Moving the pin is coming soon.
+          </p>
         </div>
         <label className="flex flex-col gap-1.5">
           <span className="text-[12.5px] font-semibold">

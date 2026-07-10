@@ -71,7 +71,7 @@ export default function ApplicantsScreen() {
             <Animated.View key={a.id} entering={FadeIn.duration(350)}>
               <Card style={{ overflow: "hidden" }}>
                 <View style={styles.appTop}>
-                  <Avatar initials={a.init} size={44} radiusOverride={12} />
+                  <Avatar initials={a.init} uri={a.photo} size={44} radiusOverride={12} />
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                       <Text style={styles.appName}>{a.name}</Text>

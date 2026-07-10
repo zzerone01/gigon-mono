@@ -1,8 +1,12 @@
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { initials, ratingLabel } from "../data/mock";
+import { SKILL_OPTIONS, initials, ratingLabel } from "../data/mock";
+import { base64ToBytes } from "../lib/base64";
+import { supabase } from "../lib/supabase";
 import { useGigStore } from "../store/gig-store";
 import { font, palette, radius } from "../theme";
 import { Icon } from "./icon";
@@ -23,10 +27,13 @@ export function ProfileTab() {
   const insets = useSafeAreaInsets();
   const role = useGigStore((s) => s.role);
   const profile = useGigStore((s) => s.profile);
+  const userId = useGigStore((s) => s.userId);
   const doSwitchRole = useGigStore((s) => s.switchRole);
+  const doUpdateProfile = useGigStore((s) => s.updateProfile);
   const doSignOut = useGigStore((s) => s.signOut);
   const doDeleteAccount = useGigStore((s) => s.deleteAccount);
   const isWorker = role === "worker";
+  const [photoBusy, setPhotoBusy] = useState(false);
 
   const displayName = isWorker
     ? (profile?.full_name ?? "You")
@@ -40,6 +47,40 @@ export function ProfileTab() {
   const switchRole = async () => {
     const next = await doSwitchRole();
     router.replace(next === "employer" ? "/(employer)/postings" : "/(worker)/explore");
+  };
+
+  const pickPhoto = async () => {
+    if (photoBusy || !userId) return;
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+      base64: true,
+    });
+    const asset = res.assets?.[0];
+    if (res.canceled || !asset?.base64) return;
+    setPhotoBusy(true);
+    try {
+      const path = `${userId}/${Date.now()}.jpg`;
+      const { error } = await supabase.storage
+        .from("avatars")
+        .upload(path, base64ToBytes(asset.base64), { contentType: "image/jpeg", upsert: true });
+      if (error) throw new Error(error.message);
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      const err = await doUpdateProfile({ avatarUrl: data.publicUrl });
+      if (err) throw new Error(err);
+    } catch (e) {
+      Alert.alert("Couldn't update photo", (e as Error).message);
+    }
+    setPhotoBusy(false);
+  };
+
+  const toggleSkill = async (skill: string) => {
+    const cur = profile?.skills ?? [];
+    const next = cur.includes(skill) ? cur.filter((s) => s !== skill) : [...cur, skill];
+    const err = await doUpdateProfile({ skills: next });
+    if (err) Alert.alert("Couldn't save skills", err);
   };
 
   const signOut = async () => {
@@ -79,7 +120,17 @@ export function ProfileTab() {
         contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 12 }}
       >
         <View style={styles.profileCard}>
-          <Avatar initials={initials(displayName)} size={54} radiusOverride={14} />
+          <Press onPress={pickPhoto} haptic={false} style={{ opacity: photoBusy ? 0.5 : 1 }}>
+            <Avatar
+              initials={initials(displayName)}
+              uri={profile?.avatar_url}
+              size={54}
+              radiusOverride={14}
+            />
+            <View style={styles.cameraBadge}>
+              <Icon name="camera" size={10} color={palette.white} strokeWidth={2} />
+            </View>
+          </Press>
           <View style={{ gap: 3, flex: 1 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
               <Text style={styles.profileName}>{displayName}</Text>
@@ -114,15 +165,24 @@ export function ProfileTab() {
           <View style={styles.infoCard}>
             <SectionLabel>Work preferences</SectionLabel>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-              {(profile?.skills ?? []).map((skill) => (
-                <View key={skill} style={styles.skillChip}>
-                  <Text style={styles.skillChipText}>{skill}</Text>
-                </View>
-              ))}
-              <View style={styles.addSkillChip}>
-                <Text style={styles.addSkillChipText}>+ Add skill</Text>
-              </View>
+              {SKILL_OPTIONS.map((skill) => {
+                const on = (profile?.skills ?? []).includes(skill);
+                return (
+                  <Press
+                    key={skill}
+                    onPress={() => toggleSkill(skill)}
+                    style={[styles.skillChip, !on && styles.skillChipOff]}
+                  >
+                    <Text style={[styles.skillChipText, !on && { color: palette.slate }]}>
+                      {skill}
+                    </Text>
+                  </Press>
+                );
+              })}
             </View>
+            <Text style={styles.skillHint}>
+              Tap to toggle — shown to businesses on your applications.
+            </Text>
             <View style={styles.infoRow}>
               <Icon name="clock" size={15} color={palette.slate} />
               <Text style={styles.infoRowText}>Weekdays · 1 – 6 PM</Text>
@@ -284,18 +344,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: palette.royalDark,
   },
-  addSkillChip: {
+  skillChipOff: {
+    backgroundColor: palette.white,
     borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: palette.lineDashed,
-    borderRadius: radius.pill,
-    paddingHorizontal: 12,
+    borderColor: palette.line,
     paddingVertical: 4,
   },
-  addSkillChipText: {
-    fontFamily: font.sansMedium,
-    fontSize: 12,
-    color: palette.slate,
+  skillHint: {
+    fontFamily: font.sans,
+    fontSize: 10.5,
+    lineHeight: 15,
+    color: palette.muted,
+  },
+  cameraBadge: {
+    position: "absolute",
+    right: -3,
+    bottom: -3,
+    width: 20,
+    height: 20,
+    borderRadius: 999,
+    backgroundColor: palette.royal,
+    borderWidth: 2,
+    borderColor: palette.white,
+    alignItems: "center",
+    justifyContent: "center",
   },
   infoRow: {
     flexDirection: "row",

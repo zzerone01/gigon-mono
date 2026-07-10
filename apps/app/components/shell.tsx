@@ -15,6 +15,7 @@ import type { Profile } from "@/lib/domain";
 import { initials } from "@/lib/domain";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { Icon } from "./icons";
+import { ProfileSheet } from "./profile-sheet";
 import { Avatar } from "./ui";
 
 /* ------------------------------ toast ------------------------------ */
@@ -49,6 +50,7 @@ export function AppShell({
   const [drawer, setDrawer] = useState(false);
   const [banner, setBanner] = useState(true);
   const [acctMenu, setAcctMenu] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [toast, setToast] = useState<ToastData | null>(null);
   const toastSeq = useRef(0);
 
@@ -139,7 +141,7 @@ export function AppShell({
               onClick={() => setAcctMenu((v) => !v)}
               className="flex items-center gap-2 rounded-full border border-line py-1 pl-1 pr-2.5"
             >
-              <Avatar name={initials(profile.full_name)} size={30} className="rounded-full bg-tint text-[11.5px] text-royal-dark" />
+              <Avatar name={initials(profile.full_name)} src={profile.avatar_url} size={30} className="rounded-full bg-tint text-[11.5px] text-royal-dark" />
               <span className="text-[12.5px] font-semibold">
                 {isEmployer ? (profile.business_name ?? profile.full_name) : profile.full_name}
               </span>
@@ -147,6 +149,16 @@ export function AppShell({
             </button>
             {acctMenu && (
               <div className="anim-fade absolute right-0 top-11 z-50 flex w-56 flex-col overflow-hidden rounded-[14px] border border-line bg-white py-1 shadow-[0_16px_48px_rgba(15,27,46,0.18)]">
+                <button
+                  onClick={() => {
+                    setAcctMenu(false);
+                    setProfileOpen(true);
+                  }}
+                  className="flex items-center gap-2.5 px-4 py-2.5 text-left text-[13px] font-medium text-ink hover:bg-tint-soft"
+                >
+                  <Icon name="user" size={15} />
+                  Profile & photo
+                </button>
                 <button
                   onClick={() => {
                     setAcctMenu(false);
@@ -193,7 +205,7 @@ export function AppShell({
             <Icon name="bell" size={19} />
             <span className="absolute right-2 top-[7px] size-[7px] rounded-full border-[1.5px] border-white bg-amber" />
           </button>
-          <Avatar name={initials(profile.full_name)} size={32} className="mr-1.5 rounded-full bg-tint text-[11px] text-royal-dark" />
+          <Avatar name={initials(profile.full_name)} src={profile.avatar_url} size={32} className="mr-1.5 rounded-full bg-tint text-[11px] text-royal-dark" />
         </header>
 
         {children}
@@ -221,7 +233,7 @@ export function AppShell({
                 </button>
               </div>
               <div className="flex items-center gap-3 border-b border-line-soft px-[18px] py-3.5">
-                <Avatar name={initials(profile.full_name)} size={44} />
+                <Avatar name={initials(profile.full_name)} src={profile.avatar_url} size={44} />
                 <div className="flex min-w-0 flex-col">
                   <span className="text-sm font-semibold">
                     {isEmployer ? (profile.business_name ?? profile.full_name) : profile.full_name}
@@ -244,10 +256,16 @@ export function AppShell({
                   <Icon name="message" size={17} />
                   Chat
                 </span>
-                <span className="flex items-center gap-3 rounded-[10px] px-3 py-3 text-[13.5px] font-medium text-slate">
+                <button
+                  onClick={() => {
+                    setDrawer(false);
+                    setProfileOpen(true);
+                  }}
+                  className="flex items-center gap-3 rounded-[10px] px-3 py-3 text-left text-[13.5px] font-medium text-slate hover:bg-tint-soft"
+                >
                   <Icon name="user" size={17} />
                   Profile
-                </span>
+                </button>
                 <div className="mx-1 my-2 h-px bg-line-soft" />
                 <button
                   onClick={switchRole}
@@ -278,6 +296,8 @@ export function AppShell({
             </div>
           </div>
         )}
+
+        {profileOpen && <ProfileSheet profile={profile} onClose={() => setProfileOpen(false)} />}
 
         {/* toast */}
         {toast && (

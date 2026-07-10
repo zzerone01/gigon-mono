@@ -127,6 +127,8 @@ interface GigState {
   setOnbFields: (patch: Partial<Pick<GigState, "onbName" | "onbBusiness" | "onbInvite">>) => void;
   completeOnboarding: (coords: { lat: number; lng: number } | null) => Promise<string | null>;
   switchRole: () => Promise<Role>;
+  /** Update skills and/or profile photo; returns an error message or null. */
+  updateProfile: (patch: { skills?: string[]; avatarUrl?: string | null }) => Promise<string | null>;
   signOut: () => Promise<void>;
   /** Permanently delete the account server-side, then clear local state. */
   deleteAccount: () => Promise<string | null>;
@@ -205,7 +207,7 @@ export function gigById(id: string | null | undefined): Gig {
   const fallback: Gig = {
     id: "", t: "", biz: "", area: "", type: "Cleaning", pay: 0, hrs: "", when: "",
     dist: "—", slots: "", lat: MACTAN_CENTER.lat, lng: MACTAN_CENTER.lng, desc: "",
-    er: "", einit: "?", erate: "New", ejobs: 0, since: "",
+    er: "", einit: "?", ephoto: null, erate: "New", ereviews: 0, ejobs: 0, since: "",
   };
   if (!id) return wMatchGig ?? fallback;
   return gigIndex[id] ?? (wMatchGig?.id === id ? wMatchGig : fallback);
@@ -213,7 +215,7 @@ export function gigById(id: string | null | undefined): Gig {
 
 export function applicantById(id: string | null | undefined): Applicant {
   const fallback: Applicant = {
-    id: "", name: "Worker", init: "?", rt: "New", jobs: 0, ns: "0 no-shows",
+    id: "", name: "Worker", init: "?", photo: null, rt: "New", jobs: 0, ns: "0 no-shows",
     nsBad: false, dist: "nearby", tags: "General", note: "Mactan",
   };
   if (!id) return matchedApplicant ?? fallback;
@@ -501,6 +503,25 @@ export const useGigStore = create<GigState>((set, get) => ({
     set({ role: next, ...initialFlow });
     await get().boot();
     return next;
+  },
+
+  updateProfile: async (patch) => {
+    try {
+      await api.post("/api/profile", patch);
+    } catch (error) {
+      return (error as Error).message;
+    }
+    const prev = get().profile;
+    if (prev) {
+      set({
+        profile: {
+          ...prev,
+          ...(patch.skills ? { skills: patch.skills } : {}),
+          ...(patch.avatarUrl !== undefined ? { avatar_url: patch.avatarUrl ?? null } : {}),
+        },
+      });
+    }
+    return null;
   },
 
   signOut: async () => {

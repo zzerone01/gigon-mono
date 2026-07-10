@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -31,6 +31,7 @@ export default function PinScreen() {
   const gig = gigById(wGig);
   const efirst = firstName(gig.er);
   const locked = pinLock > 0;
+  const [showHow, setShowHow] = useState(false);
 
   // shake on error
   const shakeX = useSharedValue(0);
@@ -65,7 +66,30 @@ export default function PinScreen() {
           <Text style={styles.sub}>
             Ask {efirst} for the 4-digit PIN — issued after you've been paid in cash.
           </Text>
+          <Press
+            onPress={() => setShowHow((v) => !v)}
+            haptic={false}
+            style={{ alignSelf: "flex-start", paddingVertical: 2 }}
+          >
+            <Text style={styles.howLink}>{showHow ? "Hide" : "How does the PIN work?"}</Text>
+          </Press>
         </View>
+
+        {showHow && (
+          <View style={styles.howBox}>
+            <Text style={styles.howText}>1 · Finish the job and get paid in cash.</Text>
+            <Text style={styles.howText}>
+              2 · {efirst} issues a 4-digit PIN in their app and tells it to you.
+            </Text>
+            <Text style={styles.howText}>
+              3 · Enter it here — the gig is marked completed for both sides and reviews unlock.
+            </Text>
+            <Text style={[styles.howText, { color: palette.muted }]}>
+              If it's never entered, the gig stays open: no review and no +1 on your completed
+              count. The PIN is valid 24 h and never moves money.
+            </Text>
+          </View>
+        )}
 
         <Animated.View style={[styles.boxRow, shakeStyle]}>
           {[0, 1, 2, 3].map((i) => {
@@ -167,6 +191,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     color: palette.slate,
+  },
+  howLink: {
+    fontFamily: font.sansSemiBold,
+    fontSize: 12,
+    color: palette.royal,
+    textDecorationLine: "underline",
+  },
+  howBox: {
+    gap: 6,
+    backgroundColor: palette.bgSoft,
+    borderRadius: 12,
+    padding: 13,
+  },
+  howText: {
+    fontFamily: font.sans,
+    fontSize: 12,
+    lineHeight: 18,
+    color: palette.body,
   },
   boxRow: {
     flexDirection: "row",

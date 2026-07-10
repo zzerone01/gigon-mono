@@ -40,6 +40,13 @@ const PATHS = {
   delivery: "M21 8 12 3 3 8v8l9 5 9-5V8Z M3 8l9 5 M12 13l9-5 M12 13v8",
   errands:
     "M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4H6Z M3 6h18 M16 10a4 4 0 0 1-8 0",
+  construction:
+    "M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1Z M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5 M4 15v-3a6 6 0 0 1 6-6 M14 6a6 6 0 0 1 6 6v3",
+  kitchen:
+    "M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z M6 17h12",
+  events:
+    "M8 2v4 M16 2v4 M3 10h18 M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z",
+  others: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z M8 12h.01 M12 12h.01 M16 12h.01",
 } as const;
 
 export type IconName = keyof typeof PATHS;
@@ -49,6 +56,10 @@ export const GIG_TYPE_ICON: Record<string, IconName> = {
   Laundry: "laundry",
   Delivery: "delivery",
   Errands: "errands",
+  Construction: "construction",
+  "Kitchen Help": "kitchen",
+  Events: "events",
+  Others: "others",
 };
 
 export function Icon({

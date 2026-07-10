@@ -7,7 +7,7 @@ import { usePostHog } from "@posthog/react";
 import { Icon, GIG_TYPE_ICON } from "@/components/icons";
 import { CancelSheet, ChatSheet, RateSheet } from "@/components/sheets";
 import { useToast } from "@/components/shell";
-import { Chip, LiveDot, MiniStepper, MonoBadge, Sheet } from "@/components/ui";
+import { Avatar, Chip, LiveDot, MiniStepper, MonoBadge, Sheet } from "@/components/ui";
 import { MapView } from "@/components/map-view";
 import {
   DISPUTE_REASONS,
@@ -633,9 +633,12 @@ function GigDetailSheet({
         </div>
 
         <div className="flex items-center gap-3 rounded-[14px] border border-line px-[13px] py-[11px]">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-tint text-[13px] font-bold text-royal-dark">
-            {initials(gig.employer.business_name ?? gig.employer.full_name)}
-          </span>
+          <Avatar
+            name={initials(gig.employer.business_name ?? gig.employer.full_name)}
+            src={gig.employer.avatar_url}
+            size={40}
+            className="bg-tint text-royal-dark"
+          />
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-[13.5px] font-semibold">{gig.employer.full_name}</span>
@@ -646,7 +649,9 @@ function GigDetailSheet({
             </div>
             <span className="flex items-center gap-[5px] text-[11.5px] text-slate">
               <Icon name="star" size={11} fill="#F5A623" />
-              {ratingLabel(gig.employer)} · {gig.employer.jobs_completed} gigs · since {since}
+              {ratingLabel(gig.employer)}
+              {gig.employer.rating_count > 0 && ` (${gig.employer.rating_count} reviews)`} ·{" "}
+              {gig.employer.jobs_completed} gigs · since {since}
             </span>
           </div>
         </div>
@@ -708,6 +713,7 @@ function PinSheet({
   const [err, setErr] = useState("");
   const [lock, setLock] = useState(0);
   const [shake, setShake] = useState(0);
+  const [showHow, setShowHow] = useState(false);
   const busyRef = useRef(false);
 
   useEffect(() => {
@@ -769,7 +775,26 @@ function PinSheet({
           <p className="text-xs leading-normal text-slate">
             Ask {employerFirst} for the 4-digit PIN — issued after you&apos;ve been paid in cash.
           </p>
+          <button
+            onClick={() => setShowHow((v) => !v)}
+            className="self-start text-[11.5px] font-semibold text-royal underline underline-offset-2"
+          >
+            {showHow ? "Hide" : "How does the PIN work?"}
+          </button>
         </div>
+        {showHow && (
+          <div className="flex flex-col gap-1.5 rounded-xl bg-bg-soft p-3 text-[11.5px] leading-relaxed text-ink-body">
+            <span>1 · Finish the job and get paid in cash.</span>
+            <span>2 · {employerFirst} issues a 4-digit PIN in their app and tells it to you.</span>
+            <span>
+              3 · Enter it here — the gig is marked completed for both sides and reviews unlock.
+            </span>
+            <span className="text-ink-muted">
+              If it&apos;s never entered, the gig stays open: no review and no +1 on your completed
+              count. The PIN is valid 24 h and never moves money.
+            </span>
+          </div>
+        )}
         <div key={shake} className={`flex justify-center gap-[9px] ${shake ? "anim-shake" : ""}`}>
           {[0, 1, 2, 3].map((i) => {
             const v = pin[i] ?? "";

@@ -58,6 +58,14 @@
           "icon": "./assets/android-icon-monochrome.png",
           "color": "#103F96"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "GigOn uses your photo library only to let you pick a profile photo.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
       ]
     ],
     "extra": {

@@ -1,6 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { ReactNode } from "react";
 import {
+  Image,
   Pressable,
   PressableProps,
   StyleProp,
@@ -51,15 +52,17 @@ export function MonoBadge({ label, bg, color }: { label: string; bg: string; col
   );
 }
 
-/** Squared initials avatar. */
+/** Squared avatar — profile photo when available, initials otherwise. */
 export function Avatar({
   initials,
+  uri,
   size = 44,
   bg = palette.tint,
   color = palette.royalDark,
   radiusOverride,
 }: {
   initials: string;
+  uri?: string | null;
   size?: number;
   bg?: string;
   color?: string;
@@ -74,9 +77,14 @@ export function Avatar({
         backgroundColor: bg,
         alignItems: "center",
         justifyContent: "center",
+        overflow: "hidden",
       }}
     >
-      <Text style={{ fontFamily: font.sansBold, fontSize: size * 0.32, color }}>{initials}</Text>
+      {uri ? (
+        <Image source={{ uri }} style={{ width: "100%", height: "100%" }} />
+      ) : (
+        <Text style={{ fontFamily: font.sansBold, fontSize: size * 0.32, color }}>{initials}</Text>
+      )}
     </View>
   );
 }

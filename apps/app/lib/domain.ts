@@ -11,8 +11,20 @@ export type GigWithEmployer = Gig & { employer: Profile };
 export type ApplicationWithWorker = Application & { worker: Profile };
 export type MatchWithGig = Match & { gig: Gig };
 
-export const GIG_TYPES = ["Cleaning", "Laundry", "Delivery", "Errands"] as const;
+export const GIG_TYPES = [
+  "Cleaning",
+  "Laundry",
+  "Delivery",
+  "Errands",
+  "Construction",
+  "Kitchen Help",
+  "Events",
+  "Others",
+] as const;
 export const FILTERS = ["All", ...GIG_TYPES] as const;
+
+/** Worker skill options — mirrors the gig categories so applicant tags line up. */
+export const SKILL_OPTIONS = GIG_TYPES.filter((t) => t !== "Others");
 
 export const WORKER_RATE_TAGS = [
   "Paid exactly as agreed",

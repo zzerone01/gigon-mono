@@ -419,6 +419,7 @@ export type Database = {
         Row: {
           active_role: Database["public"]["Enums"]["app_role"]
           area: string | null
+          avatar_url: string | null
           business_name: string | null
           cancel_count: number
           created_at: string
@@ -437,6 +438,7 @@ export type Database = {
         Insert: {
           active_role?: Database["public"]["Enums"]["app_role"]
           area?: string | null
+          avatar_url?: string | null
           business_name?: string | null
           cancel_count?: number
           created_at?: string
@@ -455,6 +457,7 @@ export type Database = {
         Update: {
           active_role?: Database["public"]["Enums"]["app_role"]
           area?: string | null
+          avatar_url?: string | null
           business_name?: string | null
           cancel_count?: number
           created_at?: string
@@ -574,7 +577,15 @@ export type Database = {
         | "CLOSED"
         | "CANCELLED"
         | "EXPIRED"
-      gig_type: "Cleaning" | "Laundry" | "Delivery" | "Errands"
+      gig_type:
+        | "Cleaning"
+        | "Laundry"
+        | "Delivery"
+        | "Errands"
+        | "Construction"
+        | "Kitchen Help"
+        | "Events"
+        | "Others"
       match_status:
         | "MATCHED"
         | "IN_PROGRESS"
@@ -722,7 +733,16 @@ export const Constants = {
         "CANCELLED",
         "EXPIRED",
       ],
-      gig_type: ["Cleaning", "Laundry", "Delivery", "Errands"],
+      gig_type: [
+        "Cleaning",
+        "Laundry",
+        "Delivery",
+        "Errands",
+        "Construction",
+        "Kitchen Help",
+        "Events",
+        "Others",
+      ],
       match_status: [
         "MATCHED",
         "IN_PROGRESS",

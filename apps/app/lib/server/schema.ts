@@ -20,7 +20,16 @@ import {
 } from "drizzle-orm/pg-core";
 
 export const appRole = pgEnum("app_role", ["worker", "employer"]);
-export const gigType = pgEnum("gig_type", ["Cleaning", "Laundry", "Delivery", "Errands"]);
+export const gigType = pgEnum("gig_type", [
+  "Cleaning",
+  "Laundry",
+  "Delivery",
+  "Errands",
+  "Construction",
+  "Kitchen Help",
+  "Events",
+  "Others",
+]);
 export const gigStatus = pgEnum("gig_status", [
   "POSTED",
   "MATCHED",
@@ -52,6 +61,7 @@ export const profiles = pgTable("profiles", {
   lat: doublePrecision("lat"),
   lng: doublePrecision("lng"),
   skills: text("skills").array().notNull().default([]),
+  avatarUrl: text("avatar_url"),
   businessName: text("business_name"),
   employerVerified: boolean("employer_verified").notNull().default(false),
   ratingSum: integer("rating_sum").notNull().default(0),

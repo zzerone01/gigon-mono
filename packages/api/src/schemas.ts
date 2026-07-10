@@ -10,7 +10,16 @@ import { z } from "zod";
 export const appRoleSchema = z.enum(["worker", "employer"]);
 export type AppRole = z.infer<typeof appRoleSchema>;
 
-export const gigTypeSchema = z.enum(["Cleaning", "Laundry", "Delivery", "Errands"]);
+export const gigTypeSchema = z.enum([
+  "Cleaning",
+  "Laundry",
+  "Delivery",
+  "Errands",
+  "Construction",
+  "Kitchen Help",
+  "Events",
+  "Others",
+]);
 export type GigType = z.infer<typeof gigTypeSchema>;
 
 // ---------- request bodies ----------
@@ -34,6 +43,13 @@ export const setRoleBody = z.object({
   role: appRoleSchema,
 });
 export type SetRoleBody = z.infer<typeof setRoleBody>;
+
+export const updateProfileBody = z.object({
+  skills: z.array(z.string().trim().min(1).max(24)).max(8).optional(),
+  /** Public URL of an uploaded avatar; null clears the photo. */
+  avatarUrl: z.string().url().max(600).nullish(),
+});
+export type UpdateProfileBody = z.infer<typeof updateProfileBody>;
 
 export const postGigBody = z.object({
   title: z.string().min(1),
