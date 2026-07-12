@@ -7,7 +7,9 @@ const COLUMNS = [
   {
     heading: "Product",
     links: [
-      { label: "Open the app", href: siteConfig.appUrl },
+      { label: "Open the web app", href: siteConfig.appUrl },
+      { label: "Get it on Google Play", href: siteConfig.playStoreUrl },
+      { label: "Download on the App Store", href: siteConfig.appStoreUrl },
       { label: "How it works", href: "#how" },
       { label: "For business", href: "#business" },
       { label: "For workers", href: "#workers" },

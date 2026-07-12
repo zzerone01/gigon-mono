@@ -1,4 +1,5 @@
 import { Reveal } from "@/components/reveal";
+import { StoreBadges } from "@/components/store-badges";
 import { WaitlistForm } from "@/components/waitlist-form";
 import { siteConfig } from "@/lib/site";
 
@@ -22,13 +23,14 @@ export function FinalCta() {
             <div className="mx-auto mt-7 max-w-[460px] rounded-2xl border border-white/15 bg-white/[0.07] p-4 text-left sm:p-5">
               <WaitlistForm source="final-cta" tone="onRoyal" />
             </div>
+            <StoreBadges className="mt-6 justify-center" />
             <p className="mt-4 text-sm text-[#cdd9f0]">
               Already in the beta?{" "}
               <a
                 href={siteConfig.appUrl}
                 className="font-semibold text-white underline underline-offset-2"
               >
-                Open the app &rarr;
+                Open the web app &rarr;
               </a>
             </p>
           </div>

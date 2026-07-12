@@ -1,9 +1,13 @@
 # iOS App Store 제출 — 진행 현황 및 체크리스트
 
-> ⚠️ **2026-07-09 Reject — Guideline 2.1(a)** (Business 데모 계정 접근 불가).
+> 🎉 **2026-07-10 승인(Approved)** — 재제출 하루 만에 통과. Manual release 설정이므로
+> **ASC에서 Release를 눌러야 공개**된다. 공개 전: Twilio 트라이얼→pay-as-you-go 업그레이드
+> (실번호 OTP 수신) + Auth Token 로테이션.
+>
+> ⚠️ 2026-07-09 Reject — Guideline 2.1(a) (Business 데모 계정 접근 불가).
 > 원인·조치·회신문은 **[`app-store-review-response.md`](./app-store-review-response.md)**.
 > 요약: OTP 고정코드(123456) 안내 부재 + 심사 시점 seed gig 전부 만료(앱 빈 상태).
-> → 활성 gig·지원자 재시딩(expiry 60d) + 데모 계정 정리 완료, 동일 빌드 재제출.
+> → 활성 gig·지원자 재시딩(expiry 60d) + 데모 계정 정리 완료, 동일 빌드 재제출 → 승인.
 >
 > ✅ **2026-07-04 심사 제출 완료** (최대 48시간 소요, 결과는 메일 통보).
 > 승인 후 수동 출시(Manually release) 설정 — App Store Connect에서 Release 버튼을 눌러야 공개된다.

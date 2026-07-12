@@ -2,6 +2,7 @@ import { MapPin, Star, Wallet, type LucideIcon } from "lucide-react";
 
 import { Badge } from "@repo/ui/components/badge";
 import { Reveal } from "@/components/reveal";
+import { StoreBadges } from "@/components/store-badges";
 import { WaitlistForm } from "@/components/waitlist-form";
 import { MapPreview } from "@/components/sections/map-preview";
 import { siteConfig } from "@/lib/site";
@@ -60,13 +61,14 @@ export function Hero() {
               );
             })}
           </ul>
-          <p className="mt-2.5 px-1 text-[13px] text-slate">
+          <StoreBadges className="mt-4 px-1" />
+          <p className="mt-3 px-1 text-[13px] text-slate">
             Already in the beta?{" "}
             <a
               href={siteConfig.appUrl}
               className="font-semibold text-royal underline-offset-2 hover:underline"
             >
-              Open the app &rarr;
+              Open the web app &rarr;
             </a>
           </p>
         </div>
