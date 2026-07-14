@@ -55,10 +55,10 @@ export default function LocationScreen() {
       </View>
       <View style={styles.main}>
         <View style={{ gap: 6, paddingHorizontal: 4 }}>
-          <Text style={styles.heading}>Turn on location</Text>
+          <Text style={styles.heading}>See gigs near you</Text>
           <Text style={styles.sub}>
             GigOn only shows gigs within 2–3 km of you. Your exact location is never shown to other
-            users.
+            users. You can choose in the next step.
           </Text>
         </View>
         <View style={styles.mapBox}>
@@ -83,12 +83,12 @@ export default function LocationScreen() {
           </Text>
         )}
       </View>
-      <View style={{ paddingHorizontal: 24, paddingBottom: insets.bottom + 16, paddingTop: 16, gap: 8 }}>
+      {/* 5.1.1(iv): single proceed button, no "Allow" wording, no skip path —
+          the OS prompt itself is where the user decides; a denial falls back
+          to the pilot-zone center (finish handles non-granted status). */}
+      <View style={{ paddingHorizontal: 24, paddingBottom: insets.bottom + 16, paddingTop: 16 }}>
         <Press style={[styles.cta, busy && { opacity: 0.6 }]} onPress={() => finish(true)} disabled={busy}>
-          <Text style={styles.ctaLabel}>{busy ? "Setting up…" : "Allow location access"}</Text>
-        </Press>
-        <Press style={styles.skip} onPress={() => finish(false)} haptic={false} disabled={busy}>
-          <Text style={styles.skipLabel}>Pick my area manually</Text>
+          <Text style={styles.ctaLabel}>{busy ? "Setting up…" : "Continue"}</Text>
         </Press>
       </View>
     </View>
@@ -203,15 +203,5 @@ const styles = StyleSheet.create({
     fontFamily: font.sansSemiBold,
     fontSize: 15,
     color: palette.ink,
-  },
-  skip: {
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  skipLabel: {
-    fontFamily: font.sansMedium,
-    fontSize: 13.5,
-    color: palette.slate,
   },
 });

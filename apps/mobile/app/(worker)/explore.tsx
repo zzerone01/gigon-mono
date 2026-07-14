@@ -66,9 +66,7 @@ export default function ExploreScreen() {
   const {
     permission: locPerm,
     coords: liveYou,
-    dismissed: locDismissed,
     request: requestLoc,
-    dismiss: dismissLoc,
     openSettings,
   } = useLiveLocation(onFix);
 
@@ -199,21 +197,10 @@ export default function ExploreScreen() {
               <Text style={styles.mapChipText}>{gigs.length} gigs open now</Text>
             </View>
 
-            {/* location consent cycle */}
-            {locPerm === "granted" || locPerm === "checking" ? (
-              <View style={[styles.mapChip, { right: 12, top: 12 }]}>
-                <Text style={styles.mapChipMuted}>Pilot zone · 2–3 km</Text>
-              </View>
-            ) : locPerm === "prompt" ? (
-              <Press
-                style={[styles.mapChip, styles.locChip, { right: 12, top: 12 }]}
-                onPress={requestLoc}
-                haptic={false}
-              >
-                <Icon name="navigate" size={12} color={palette.royal} strokeWidth={2.2} />
-                <Text style={styles.locChipText}>Enable location</Text>
-              </Press>
-            ) : (
+            {/* location consent cycle — App Review 5.1.1(iv): the pre-prompt
+                explainer must have a single proceed button ("Continue", no
+                "Allow" wording) and no dismiss path. */}
+            {locPerm === "blocked" ? (
               <Press
                 style={[styles.mapChip, styles.locChip, { right: 12, top: 12 }]}
                 onPress={openSettings}
@@ -222,9 +209,13 @@ export default function ExploreScreen() {
                 <Icon name="alertTriangle" size={12} color={palette.amber} strokeWidth={2.2} />
                 <Text style={styles.locChipText}>Location off · Settings</Text>
               </Press>
+            ) : (
+              <View style={[styles.mapChip, { right: 12, top: 12 }]}>
+                <Text style={styles.mapChipMuted}>Pilot zone · 2–3 km</Text>
+              </View>
             )}
 
-            {locPerm === "prompt" && !locDismissed && (
+            {locPerm === "prompt" && (
               <View style={styles.locCard}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                   <View style={styles.locCardIcon}>
@@ -233,19 +224,14 @@ export default function ExploreScreen() {
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={styles.locCardTitle}>See gigs around you</Text>
                     <Text style={styles.locCardBody}>
-                      Sort gigs by real distance. Businesses only ever see an approximate distance
-                      — never your exact spot.
+                      GigOn sorts gigs by real distance. Businesses only ever see an approximate
+                      distance — never your exact spot.
                     </Text>
                   </View>
                 </View>
-                <View style={{ flexDirection: "row", gap: 8 }}>
-                  <Press style={styles.locBtnGhost} onPress={dismissLoc} haptic={false}>
-                    <Text style={styles.locBtnGhostText}>Not now</Text>
-                  </Press>
-                  <Press style={styles.locBtnPrimary} onPress={requestLoc}>
-                    <Text style={styles.locBtnPrimaryText}>Allow location</Text>
-                  </Press>
-                </View>
+                <Press style={styles.locBtnPrimary} onPress={requestLoc}>
+                  <Text style={styles.locBtnPrimaryText}>Continue</Text>
+                </Press>
               </View>
             )}
           </View>
@@ -533,23 +519,7 @@ const styles = StyleSheet.create({
     lineHeight: 16.5,
     color: palette.slate,
   },
-  locBtnGhost: {
-    flex: 1,
-    height: 40,
-    borderWidth: 1,
-    borderColor: palette.line,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: palette.white,
-  },
-  locBtnGhostText: {
-    fontFamily: font.sansSemiBold,
-    fontSize: 12,
-    color: palette.slate,
-  },
   locBtnPrimary: {
-    flex: 1.6,
     height: 40,
     borderRadius: 10,
     alignItems: "center",
