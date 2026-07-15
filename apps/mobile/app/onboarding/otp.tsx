@@ -1,6 +1,14 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Icon } from "../../src/components/icon";
@@ -47,33 +55,44 @@ export default function OtpScreen() {
           <Icon name="arrowLeft" size={19} color={palette.ink} />
         </Press>
       </View>
-      <View style={styles.main}>
-        <View style={{ gap: 7 }}>
-          <Text style={styles.heading}>Enter the 6-digit code</Text>
-          <Text style={styles.sub}>Sent by SMS to +{phone}</Text>
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 10 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <View style={styles.main}>
+          <View style={{ gap: 7 }}>
+            <Text style={styles.heading}>Enter the 6-digit code</Text>
+            <Text style={styles.sub}>Sent by SMS to +{phone}</Text>
+          </View>
+          <TextInput
+            value={code}
+            onChangeText={(v) => setCode(v.replace(/\D/g, "").slice(0, 6))}
+            keyboardType="number-pad"
+            autoFocus
+            placeholder="123456"
+            placeholderTextColor={palette.lineDashed}
+            style={styles.codeInput}
+            onSubmitEditing={verify}
+          />
+          {!!error && <Text style={styles.error}>{error}</Text>}
+          <Press
+            style={[styles.cta, (busy || code.length !== 6) && { opacity: 0.6 }]}
+            onPress={verify}
+            disabled={busy || code.length !== 6}
+          >
+            <Text style={styles.ctaLabel}>{busy ? "Checking…" : "Verify & continue"}</Text>
+          </Press>
+          <Press
+            style={{ alignSelf: "center", padding: 8 }}
+            onPress={() => router.back()}
+            haptic={false}
+          >
+            <Text style={styles.altLabel}>Use a different number</Text>
+          </Press>
         </View>
-        <TextInput
-          value={code}
-          onChangeText={(v) => setCode(v.replace(/\D/g, "").slice(0, 6))}
-          keyboardType="number-pad"
-          autoFocus
-          placeholder="123456"
-          placeholderTextColor={palette.lineDashed}
-          style={styles.codeInput}
-          onSubmitEditing={verify}
-        />
-        {!!error && <Text style={styles.error}>{error}</Text>}
-        <Press
-          style={[styles.cta, (busy || code.length !== 6) && { opacity: 0.6 }]}
-          onPress={verify}
-          disabled={busy || code.length !== 6}
-        >
-          <Text style={styles.ctaLabel}>{busy ? "Checking…" : "Verify & continue"}</Text>
-        </Press>
-        <Press style={{ alignSelf: "center", padding: 8 }} onPress={() => router.back()} haptic={false}>
-          <Text style={styles.altLabel}>Use a different number</Text>
-        </Press>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -93,8 +112,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  scroll: {
+    flexGrow: 1,
+  },
   main: {
-    flex: 1,
+    flexGrow: 1,
     gap: 16,
     paddingHorizontal: 28,
     paddingTop: 12,

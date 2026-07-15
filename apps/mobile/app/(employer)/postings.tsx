@@ -52,7 +52,7 @@ export default function PostingsScreen() {
         </View>
         <View style={styles.zoneChip}>
           <Icon name="mapPin" size={13} color={palette.royal} strokeWidth={2.2} />
-          <Text style={styles.zoneChipText}>
+          <Text style={styles.zoneChipText} numberOfLines={1}>
             {profile?.business_name ?? "Your business"} · {profile?.area ?? "Philippines"}
           </Text>
         </View>
@@ -147,6 +147,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    flexShrink: 0,
   },
   brandTile: {
     width: 26,
@@ -183,11 +184,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: radius.pill,
+    // A long business name must ellipsize inside the chip rather than push the
+    // row off the right edge — the 375pt-wide canvas leaves no slack.
+    flexShrink: 1,
+    marginLeft: 8,
   },
   zoneChipText: {
     fontFamily: font.sansSemiBold,
     fontSize: 12,
     color: palette.royalDark,
+    flexShrink: 1,
   },
   titleRow: {
     flexDirection: "row",

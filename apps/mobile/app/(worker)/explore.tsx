@@ -106,7 +106,9 @@ export default function ExploreScreen() {
         <View style={styles.headerRight}>
           <View style={styles.zoneChip}>
             <Icon name="mapPin" size={13} color={palette.royal} strokeWidth={2.2} />
-            <Text style={styles.zoneChipText}>{profile?.area ?? "Philippines"} · Zone 1</Text>
+            <Text style={styles.zoneChipText} numberOfLines={1}>
+              {profile?.area ?? "Philippines"} · Zone 1
+            </Text>
           </View>
           <Press style={styles.bellBtn} haptic={false}>
             <Icon name="bell" size={20} color={palette.slate} />
@@ -292,11 +294,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: radius.pill,
+    flexShrink: 1,
   },
   zoneChipText: {
     fontFamily: font.sansSemiBold,
     fontSize: 12,
     color: palette.royalDark,
+    flexShrink: 1,
   },
   bellBtn: {
     width: 40,

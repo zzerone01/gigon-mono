@@ -1,6 +1,14 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Icon } from "../../src/components/icon";
@@ -32,49 +40,59 @@ export default function PhoneScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={[styles.screen, { paddingTop: insets.top, paddingBottom: insets.bottom + 10 }]}
+      style={styles.screen}
     >
-      <View style={styles.main}>
-        <View style={styles.logoTile}>
-          <Icon name="logo" size={28} color={palette.white} strokeWidth={2.4} />
-        </View>
-        <View style={{ gap: 8 }}>
-          <Text style={styles.wordmark}>GigOn</Text>
-          <Text style={styles.tagline}>Your gig is on.</Text>
-          <Text style={styles.subtitle}>
-            Short, local gigs matched with trusted people nearby — in the Philippines.
-          </Text>
-        </View>
-        <View style={{ gap: 7, marginTop: 8 }}>
-          <Text style={styles.label}>Phone number</Text>
-          <View style={styles.phoneRow}>
-            <View style={styles.prefix}>
-              <Text style={styles.prefixText}>+63</Text>
-            </View>
-            <TextInput
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-              placeholder="917 123 4001"
-              placeholderTextColor={palette.muted}
-              style={styles.phoneInput}
-            />
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingTop: insets.top, paddingBottom: insets.bottom + 10 },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <View style={styles.main}>
+          <View style={styles.logoTile}>
+            <Icon name="logo" size={28} color={palette.white} strokeWidth={2.4} />
           </View>
-          <Text style={styles.helper}>We'll text a 6-digit code. Standard SMS rates apply.</Text>
-          {!!error && <Text style={styles.error}>{error}</Text>}
+          <View style={{ gap: 8 }}>
+            <Text style={styles.wordmark}>GigOn</Text>
+            <Text style={styles.tagline}>Your gig is on.</Text>
+            <Text style={styles.subtitle}>
+              Short, local gigs matched with trusted people nearby — in the Philippines.
+            </Text>
+          </View>
+          <View style={{ gap: 7, marginTop: 8 }}>
+            <Text style={styles.label}>Phone number</Text>
+            <View style={styles.phoneRow}>
+              <View style={styles.prefix}>
+                <Text style={styles.prefixText}>+63</Text>
+              </View>
+              <TextInput
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+                placeholder="917 123 4001"
+                placeholderTextColor={palette.muted}
+                style={styles.phoneInput}
+              />
+            </View>
+            <Text style={styles.helper}>We'll text a 6-digit code. Standard SMS rates apply.</Text>
+            {!!error && <Text style={styles.error}>{error}</Text>}
+          </View>
+          <Press style={[styles.cta, busy && { opacity: 0.6 }]} onPress={send} disabled={busy}>
+            <Text style={styles.ctaLabel}>{busy ? "Sending…" : "Send code"}</Text>
+            <Icon name="arrowRight" size={16} color={palette.ink} strokeWidth={2.2} />
+          </Press>
         </View>
-        <Press style={[styles.cta, busy && { opacity: 0.6 }]} onPress={send} disabled={busy}>
-          <Text style={styles.ctaLabel}>{busy ? "Sending…" : "Send code"}</Text>
-          <Icon name="arrowRight" size={16} color={palette.ink} strokeWidth={2.2} />
-        </Press>
-      </View>
-      <Text style={styles.terms}>
-        By continuing you agree to the Terms — you work with businesses directly as an independent
-        contractor.{" "}
-        <Text style={{ color: palette.slate, fontFamily: font.sansSemiBold }}>
-          GigOn is free during the pilot; a small per-match fee for businesses is planned later.
+        <Text style={styles.terms}>
+          By continuing you agree to the Terms — you work with businesses directly as an independent
+          contractor.{" "}
+          <Text style={{ color: palette.slate, fontFamily: font.sansSemiBold }}>
+            GigOn is free during the pilot; a small per-match fee for businesses is planned later.
+          </Text>
         </Text>
-      </Text>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -84,8 +102,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: palette.white,
   },
+  // flexGrow (not flex) throughout: on a tall phone the content still centres in
+  // the leftover space, but once the keyboard shrinks the viewport — iPhone SE,
+  // or the 375x667 canvas iPad compatibility mode hands us — the block keeps its
+  // natural height and the ScrollView scrolls instead of overlapping the terms.
+  scroll: {
+    flexGrow: 1,
+  },
   main: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: "center",
     gap: 18,
     paddingHorizontal: 28,

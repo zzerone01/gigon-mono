@@ -1,6 +1,14 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -85,9 +93,16 @@ export default function RoleScreen() {
   };
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={[styles.screen, { paddingTop: insets.top }]}
+    >
       <ProgressBars filled={2} />
-      <ScrollView style={styles.main} contentContainerStyle={{ gap: 14 }}>
+      <ScrollView
+        style={styles.main}
+        contentContainerStyle={{ gap: 14, paddingBottom: 8 }}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={{ gap: 6, paddingHorizontal: 4 }}>
           <Text style={styles.heading}>How will you use GigOn?</Text>
           <Text style={styles.sub}>One account, one active role — switch any time in settings.</Text>
@@ -151,7 +166,7 @@ export default function RoleScreen() {
           <Text style={styles.ctaLabel}>Continue</Text>
         </Press>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

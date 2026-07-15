@@ -1,6 +1,14 @@
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -50,7 +58,10 @@ export default function PostGigScreen() {
   };
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={[styles.screen, { paddingTop: insets.top }]}
+    >
       <View style={styles.header}>
         <Press style={styles.headerBtn} onPress={() => router.back()} haptic={false}>
           <Icon name="arrowLeft" size={19} color={palette.ink} />
@@ -250,7 +261,7 @@ export default function PostGigScreen() {
           pilot, not even then (₱0).
         </Text>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
