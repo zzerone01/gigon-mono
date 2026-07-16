@@ -37,10 +37,11 @@
 | `/api/onboarding` | 공통 | 프로필 확정 (이름 공백이면 기존값 유지) |
 | `/api/invites/redeem` | 사장님 | 초대 인증 + employer 전환 → `{ok:boolean}` (실패도 200) |
 | `/api/profile/role` | 공통 | 역할 전환 |
-| `/api/gigs` | 사장님(verified) | 공고 생성 + audit → `{id}` |
-| `/api/gigs/:id/apply` | 워커 | 1탭 지원 (본인 공고 403, POSTED+미만료만) → `{id}` |
+| `/api/gigs` | 사장님(verified) | 공고 생성 + audit → `{id}`. `startsOn`은 오늘 ~ **`MAX_DAYS_AHEAD`(30일)** 밖이면 422 — 모바일 post 폼의 피커 `maximumDate`와 **반드시 같이 움직여야** 함 |
+| `/api/gigs/:id/apply` | 워커 | 1탭 지원 (본인 공고 403, POSTED+미만료만) → `{id}`. **멱등**: 이미 APPLIED면 같은 id를 돌려주되 푸시·`gig_applied` 트래킹을 건너뜀 (중복 탭이 사장님에게 알림을 재발송하던 버그). WITHDRAWN 후 재지원은 진짜 지원으로 카운트 |
 | `/api/gigs/:id/cancel` | 공고 주인(POSTED만) | 공고 철회 + 지원 REJECTED. 무penalty |
 | `/api/applications/:id/select` | 공고 주인 | 조건부 UPDATE 레이스 가드로 매칭 + **billable_event(₱0)** → `{matchId}` |
+| `/api/applications/:id/withdraw` | 지원 당사자 | 답 오기 전 지원 취소. **APPLIED→WITHDRAWN만** (조건부 UPDATE 레이스 가드 — 방금 선택된 매칭을 되돌릴 수 없음). 매칭 취소와 달리 **cancel_count 페널티 없음** |
 | `/api/matches/:id/arrive` | 매칭 워커 | IN_PROGRESS |
 | `/api/matches/:id/pin` | 사장님(IN_PROGRESS) | `crypto.randomInt` 4자리 → bcryptjs 해시 upsert, **평문은 응답으로만** → `{pin}` |
 | `/api/matches/:id/pin/verify` | 워커 | **예외 계약**: 항상 200 `{ok:…}` (wrong_pin/locked/no_active_pin). 시도 카운터는 `FOR UPDATE` |
