@@ -17,13 +17,25 @@ function phDate(daysFromToday = 0): string {
     .slice(0, 10);
 }
 
+/**
+ * How far ahead a gig may be scheduled. The post form's date picker must use
+ * the same window (apps/mobile/app/post.tsx, apps/app/components/…), or the UI
+ * offers dates this rejects. Bounded because expires_at rides on it: a gig
+ * stays POSTED until the end of its start day.
+ */
+const MAX_DAYS_AHEAD = 30;
+
 export const POST = withErrors(async (req) => {
   const user = await requireUser(req);
   const body = postGigBody.parse(await readJson(req));
 
   const startsOn = body.startsOn ?? phDate();
-  if (startsOn < phDate() || startsOn > phDate(7)) {
-    throw new ApiError(422, "invalid_input", "start date must be within the next 7 days");
+  if (startsOn < phDate() || startsOn > phDate(MAX_DAYS_AHEAD)) {
+    throw new ApiError(
+      422,
+      "invalid_input",
+      `start date must be between today and ${MAX_DAYS_AHEAD} days from now`,
+    );
   }
   // Live until the end of the chosen day (PH time) — but at least 6 h, so a
   // late-night "Today" post survives into the morning.

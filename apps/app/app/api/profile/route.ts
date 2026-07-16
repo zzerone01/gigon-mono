@@ -21,6 +21,7 @@ export const POST = withErrors(async (req) => {
     availability: string;
     lat: number;
     lng: number;
+    area: string;
   }> = {};
   if (body.skills) patch.skills = [...new Set(body.skills.map((s) => s.trim()).filter(Boolean))];
   if (body.avatarUrl !== undefined) patch.avatarUrl = body.avatarUrl ?? null;
@@ -31,6 +32,9 @@ export const POST = withErrors(async (req) => {
     patch.lat = body.lat;
     patch.lng = body.lng;
   }
+  // Only alongside a fix: the label describes where the coords are, so letting
+  // it move on its own would just let it drift out of sync.
+  if (body.area !== undefined && body.lat !== undefined) patch.area = body.area.trim();
   if (Object.keys(patch).length === 0) return ok({});
 
   await db.update(profiles).set(patch).where(eq(profiles.id, user.id));

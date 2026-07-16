@@ -9,7 +9,7 @@ import { GIG_TYPE_ICON, Icon } from "../../src/components/icon";
 import { PricePin } from "../../src/components/maps";
 import { Card, Chip, Press } from "../../src/components/ui";
 import { FILTERS, Gig } from "../../src/data/mock";
-import { MACTAN_CENTER, distanceMeters } from "../../src/lib/geo";
+import { MACTAN_CENTER, distanceMeters, reverseGeocodeArea } from "../../src/lib/geo";
 import { useLiveLocation } from "../../src/lib/use-live-location";
 import { useGigStore } from "../../src/store/gig-store";
 import { font, palette, radius } from "../../src/theme";
@@ -49,6 +49,7 @@ export default function ExploreScreen() {
   const insets = useSafeAreaInsets();
   const applied = useGigStore((s) => s.applied);
   const feed = useGigStore((s) => s.feed);
+  const feedWidened = useGigStore((s) => s.feedWidened);
   const profile = useGigStore((s) => s.profile);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
   const [view, setView] = useState<"list" | "map">("map");
@@ -58,9 +59,14 @@ export default function ExploreScreen() {
   const onFix = useCallback(async (c: { lat: number; lng: number }) => {
     const s = useGigStore.getState();
     const p = s.profile;
-    if (p?.lat != null && p?.lng != null && distanceMeters(c, { lat: p.lat, lng: p.lng }) < 150)
-      return;
-    await s.updateProfile({ lat: c.lat, lng: c.lng });
+    const moved =
+      p?.lat == null || p?.lng == null || distanceMeters(c, { lat: p.lat, lng: p.lng }) >= 150;
+    // Onboarding used to store a hardcoded "Philippines" — repair it from the
+    // first real fix even when the worker hasn't moved.
+    const areaIsPlaceholder = !p?.area || p.area === "Philippines";
+    if (!moved && !areaIsPlaceholder) return;
+    const area = await reverseGeocodeArea(c);
+    await s.updateProfile({ lat: c.lat, lng: c.lng, ...(area ? { area } : {}) });
     await s.loadWorker();
   }, []);
   const {
@@ -148,7 +154,9 @@ export default function ExploreScreen() {
               <View style={styles.listFooter}>
                 <Icon name="clock" size={12} color={palette.muted} />
                 <Text style={styles.listFooterText}>
-                  That's everything within 3 km — new gigs appear instantly
+                  {feedWidened
+                    ? "Nothing within 3 km of you yet — showing the nearest gigs instead"
+                    : "That's everything within 3 km — new gigs appear instantly"}
                 </Text>
               </View>
             }

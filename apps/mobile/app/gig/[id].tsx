@@ -149,6 +149,8 @@ export default function GigDetailScreen() {
                   : { backgroundColor: palette.amber },
               ]}
               onPress={() => apply(gig.id)}
+              disabled={applied}
+              haptic={!applied}
             >
               <Text style={[styles.ctaLabel, { color: applied ? palette.royal : palette.ink }]}>
                 {applied ? "Applied ✓ — waiting for reply" : "Apply — 1 tap"}

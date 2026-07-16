@@ -177,7 +177,7 @@ export default function OnboardingPage() {
         <div className="mt-1 flex items-start gap-2.5 rounded-[14px] bg-bg-soft p-3.5 px-3.5">
           <Icon name="shield" size={16} color="#1AA75A" className="mt-px shrink-0" />
           <span className="text-xs leading-relaxed text-slate">
-            GigOn only shows gigs within 2–3 km. Businesses only see your approximate distance —
+            GigOn shows the gigs closest to you — around 2–3 km in the pilot zone. Businesses only see your approximate distance —
             e.g. “400 m away”. We&apos;ll ask the browser for location; you can decline.
           </span>
         </div>

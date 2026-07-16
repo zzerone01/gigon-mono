@@ -1,6 +1,26 @@
 /** Mactan pilot-zone geo helpers (mirrors apps/app/lib/geo.ts). */
+import * as Location from "expo-location";
 
 export const MACTAN_CENTER = { lat: 10.3057, lng: 123.9678 };
+
+/** The "gigs near you" promise, in metres. Matches the pilot-zone copy. */
+export const FEED_RADIUS_M = 3000;
+
+/**
+ * Turn a fix into the area label shown on profiles ("Lapu-Lapu City").
+ * Best-effort: reverse geocoding needs a network round trip and is not worth
+ * blocking onboarding for, so callers fall back to the previous label.
+ */
+export async function reverseGeocodeArea(c: { lat: number; lng: number }): Promise<string | null> {
+  try {
+    const [place] = await Location.reverseGeocodeAsync({ latitude: c.lat, longitude: c.lng });
+    if (!place) return null;
+    const label = place.city ?? place.subregion ?? place.district ?? place.region;
+    return label?.trim() || null;
+  } catch {
+    return null;
+  }
+}
 
 export function distanceMeters(
   a: { lat: number; lng: number },

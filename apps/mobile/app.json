@@ -3,7 +3,7 @@
     "name": "GigOn",
     "slug": "gigon",
     "scheme": "gigon",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -37,6 +37,7 @@
     "plugins": [
       "expo-router",
       "expo-font",
+      "@react-native-community/datetimepicker",
       [
         "expo-splash-screen",
         {
@@ -49,7 +50,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "GigOn only uses your location to show gigs within 2–3 km. Your exact location is never shown to other users."
+          "locationWhenInUsePermission": "GigOn uses your location only to show gigs near you and how far away they are. Your exact location is never shown to other users."
         }
       ],
       [

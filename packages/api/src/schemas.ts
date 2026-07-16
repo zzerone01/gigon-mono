@@ -55,6 +55,8 @@ export const updateProfileBody = z
     /** Fresh device location (both or neither) — keeps distances honest. */
     lat: z.number().min(-90).max(90).optional(),
     lng: z.number().min(-180).max(180).optional(),
+    /** Human label for the fix above, e.g. "Lapu-Lapu City". */
+    area: z.string().trim().min(1).max(60).optional(),
   })
   .refine((b) => (b.lat === undefined) === (b.lng === undefined), {
     message: "lat and lng must be sent together",

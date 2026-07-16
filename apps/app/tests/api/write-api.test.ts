@@ -11,6 +11,7 @@ import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { POST as selectApplicant } from "@/app/api/applications/[id]/select/route";
+import { POST as withdrawApp } from "@/app/api/applications/[id]/withdraw/route";
 import { POST as applyToGig } from "@/app/api/gigs/[id]/apply/route";
 import { POST as cancelGig } from "@/app/api/gigs/[id]/cancel/route";
 import { POST as postGig } from "@/app/api/gigs/route";
@@ -182,6 +183,29 @@ describe("full happy path", () => {
     applicationId = first.json.data.id;
     const again = await call(applyToGig, worker, {}, gigId);
     expect(again.json.data.id).toBe(applicationId);
+  });
+
+  it("does not re-notify the employer when the same worker taps Apply again", async () => {
+    // audit_log is the observable proxy for the notify/track block: it is
+    // written on the same branch that pushes "New applicant" and fires
+    // gig_applied, so one row here means the duplicate tap stayed silent.
+    const rows = await sql`
+      select id from audit_log
+      where event = 'applied' and gig_id = ${gigId} and actor_id = ${worker.id}`;
+    expect(rows.length).toBe(1);
+  });
+
+  it("counts a genuine re-application after withdrawing", async () => {
+    await sql`update applications set status = 'WITHDRAWN' where id = ${applicationId}`;
+    const res = await call(applyToGig, worker, {}, gigId);
+    expect(res.status).toBe(200);
+    expect(res.json.data.id).toBe(applicationId);
+    const [a] = await sql`select status from applications where id = ${applicationId}`;
+    expect(a!.status).toBe("APPLIED");
+    const rows = await sql`
+      select id from audit_log
+      where event = 'applied' and gig_id = ${gigId} and actor_id = ${worker.id}`;
+    expect(rows.length).toBe(2);
   });
 
   it("blocks selecting an applicant on someone else's gig", async () => {
@@ -460,5 +484,66 @@ describe("disputes & review gating", () => {
     const res = await call(applyToGig, bystander, {}, gigId);
     expect(res.status).toBe(409);
     expect(res.json.error.message).toBe("gig is not open");
+  });
+});
+
+describe("gig start date window", () => {
+  /** Calendar date in PH (UTC+8), days from today — mirrors the route. */
+  const phDate = (days = 0) =>
+    new Date(Date.now() + (8 * 3600 + days * 86400) * 1000).toISOString().slice(0, 10);
+
+  it("accepts a start date at the 30-day ceiling", async () => {
+    const res = await call(postGig, employer, { ...GIG_BODY, startsOn: phDate(30) });
+    expect(res.status).toBe(200);
+    // the gig must stay live until the end of its start day, not expire early
+    const [g] = await sql`select starts_on, expires_at from gigs where id = ${res.json.data.id}`;
+    // postgres.js hands back a Date for a `date` column, at UTC midnight
+    expect((g!.starts_on as Date).toISOString().slice(0, 10)).toBe(phDate(30));
+    expect(new Date(g!.expires_at as string).getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it("rejects a start date past the ceiling", async () => {
+    const res = await call(postGig, employer, { ...GIG_BODY, startsOn: phDate(31) });
+    expect(res.status).toBe(422);
+  });
+
+  it("rejects a start date in the past", async () => {
+    const res = await call(postGig, employer, { ...GIG_BODY, startsOn: phDate(-1) });
+    expect(res.status).toBe(422);
+  });
+});
+
+describe("withdrawing an application", () => {
+  it("lets the worker take back an unanswered application", async () => {
+    const { gigId, applicationId } = await makeGig();
+    const [before] = await sql`select cancel_count from profiles where id = ${worker.id}`;
+
+    const res = await call(withdrawApp, worker, {}, applicationId);
+    expect(res.status).toBe(200);
+    const [a] = await sql`select status from applications where id = ${applicationId}`;
+    expect(a!.status).toBe("WITHDRAWN");
+
+    // withdrawing is not a cancellation — it must not cost the worker a strike
+    const [after] = await sql`select cancel_count from profiles where id = ${worker.id}`;
+    expect(after!.cancel_count).toBe(before!.cancel_count);
+    // and the gig stays open for everyone else
+    const [g] = await sql`select status from gigs where id = ${gigId}`;
+    expect(g!.status).toBe("POSTED");
+  });
+
+  it("blocks withdrawing someone else's application", async () => {
+    const { applicationId } = await makeGig();
+    const res = await call(withdrawApp, bystander, {}, applicationId);
+    expect(res.status).toBe(403);
+    expect(res.json.error.message).toBe("not your application");
+  });
+
+  it("refuses once the business has already selected the worker", async () => {
+    const { applicationId } = await makeMatch();
+    const res = await call(withdrawApp, worker, {}, applicationId);
+    expect(res.status).toBe(409);
+    // the live match must survive the attempt
+    const [a] = await sql`select status from applications where id = ${applicationId}`;
+    expect(a!.status).toBe("SELECTED");
   });
 });

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { track } from "@/lib/server/analytics";
@@ -23,14 +23,34 @@ export const POST = withErrors(async (req, ctx) => {
       throw new ApiError(403, "forbidden", "cannot apply to your own gig");
     }
 
-    const [application] = await tx
+    // Idempotent: a second tap on an already-APPLIED gig must not notify the
+    // employer or fire the funnel event again. Re-applying after WITHDRAWN is a
+    // real application, so that path still counts.
+    const [inserted] = await tx
       .insert(applications)
       .values({ gigId, workerId: user.id })
-      .onConflictDoUpdate({
-        target: [applications.gigId, applications.workerId],
-        set: { status: "APPLIED" },
-      })
+      .onConflictDoNothing({ target: [applications.gigId, applications.workerId] })
       .returning({ id: applications.id });
+
+    let applicationId = inserted?.id;
+    let isNewApplication = !!inserted;
+
+    if (!inserted) {
+      const [existing] = await tx
+        .select({ id: applications.id, status: applications.status })
+        .from(applications)
+        .where(and(eq(applications.gigId, gigId), eq(applications.workerId, user.id)));
+      applicationId = existing!.id;
+      if (existing!.status !== "APPLIED") {
+        await tx
+          .update(applications)
+          .set({ status: "APPLIED" })
+          .where(eq(applications.id, existing!.id));
+        isNewApplication = true;
+      }
+    }
+
+    if (!isNewApplication) return { id: applicationId!, isNewApplication: false as const };
 
     const [worker] = await tx
       .select({ fullName: profiles.fullName })
@@ -39,21 +59,24 @@ export const POST = withErrors(async (req, ctx) => {
 
     await audit(tx, "applied", { gigId, actorId: user.id });
     return {
-      id: application!.id,
+      id: applicationId!,
+      isNewApplication: true as const,
       employerId: gig.employerId,
       gigTitle: gig.title,
       workerName: worker?.fullName ?? "A worker",
     };
   });
 
-  defer(() =>
-    sendPushTo([result.employerId], {
-      title: "New applicant",
-      body: `${result.workerName} applied to “${result.gigTitle}”`,
-      data: { type: "applied", gigId },
-    }),
-  );
-  defer(() => track(user.id, "gig_applied", { gigId, applicationId: result.id }));
+  if (result.isNewApplication) {
+    defer(() =>
+      sendPushTo([result.employerId], {
+        title: "New applicant",
+        body: `${result.workerName} applied to “${result.gigTitle}”`,
+        data: { type: "applied", gigId },
+      }),
+    );
+    defer(() => track(user.id, "gig_applied", { gigId, applicationId: result.id }));
+  }
 
   return ok({ id: result.id });
 });

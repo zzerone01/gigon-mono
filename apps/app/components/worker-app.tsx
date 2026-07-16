@@ -26,7 +26,7 @@ import {
   type Profile,
 } from "@/lib/domain";
 import { api } from "@/lib/api";
-import { MACTAN_CENTER, distanceMeters, formatDistance } from "@/lib/geo";
+import { FEED_RADIUS_M, MACTAN_CENTER, distanceMeters, formatDistance } from "@/lib/geo";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useLiveLocation } from "@/lib/use-live-location";
 
@@ -193,13 +193,17 @@ export function WorkerApp({ profile }: { profile: Profile }) {
     () => new Set(apps.filter((a) => a.status !== "WITHDRAWN").map((a) => a.gig_id)),
     [apps],
   );
-  const feed = useMemo(() => {
+  // Scope to the radius the copy promises. Supply is thin during the pilot, so
+  // rather than show an empty list to anyone outside the zone we widen to the
+  // nearest and say so (feedWidened). Mirrors the mobile store.
+  const { feed, feedWidened } = useMemo(() => {
     const list = gigs
       .filter((g) => g.employer_id !== me)
       .filter((g) => filter === "All" || g.type === filter)
       .map((g) => ({ ...g, dist: distanceMeters(you, g) }));
     list.sort((a, b) => a.dist - b.dist);
-    return list;
+    const near = list.filter((g) => g.dist <= FEED_RADIUS_M);
+    return { feed: near.length ? near : list, feedWidened: near.length === 0 && list.length > 0 };
   }, [gigs, filter, me, you]);
 
   const activeMatch = match && ["MATCHED", "IN_PROGRESS", "COMPLETED"].includes(match.status) ? match : null;
@@ -247,6 +251,20 @@ export function WorkerApp({ profile }: { profile: Profile }) {
     }
     setDetail(null);
     toast("Application sent", `${gig.employer.business_name ?? "The business"} is reviewing applicants — 1-tap, no cover letter`);
+    loadAll();
+  };
+
+  const withdraw = async (gig: GigWithEmployer) => {
+    const application = apps.find((a) => a.gig_id === gig.id && a.status === "APPLIED");
+    if (!application) return;
+    try {
+      await api.post(`/api/applications/${application.id}/withdraw`);
+    } catch (error) {
+      toast("Couldn't withdraw", (error as Error).message);
+      return;
+    }
+    setDetail(null);
+    toast("Application withdrawn", `You're no longer applied to “${gig.title}”`);
     loadAll();
   };
 
@@ -404,6 +422,11 @@ export function WorkerApp({ profile }: { profile: Profile }) {
               </span>
               <span className="shrink-0 whitespace-nowrap font-medium text-slate">Sort ▾</span>
             </div>
+            {feedWidened && (
+              <p className="px-1 pb-0.5 text-[11px] text-ink-muted">
+                Nothing within 3 km of you yet — showing the nearest gigs instead.
+              </p>
+            )}
             {feed.map((g) => (
               <button
                 key={g.id}
@@ -552,6 +575,7 @@ export function WorkerApp({ profile }: { profile: Profile }) {
           applied={appliedIds.has(detail.id)}
           dist={formatDistance(distanceMeters(you, detail))}
           onApply={() => apply(detail)}
+          onWithdraw={() => withdraw(detail)}
           onClose={() => setDetail(null)}
         />
       )}
@@ -630,6 +654,7 @@ export function GigDetailSheet({
   dist,
   preview = false,
   onApply,
+  onWithdraw,
   onClose,
 }: {
   gig: GigWithEmployer;
@@ -638,6 +663,8 @@ export function GigDetailSheet({
   /** Employer checking their own fresh post — no apply CTA, no funnel event. */
   preview?: boolean;
   onApply: () => void;
+  /** Only reachable from the applied state, which preview never renders. */
+  onWithdraw?: () => void;
   onClose: () => void;
 }) {
   const posthog = usePostHog();
@@ -789,17 +816,24 @@ export function GigDetailSheet({
               Workers see an &ldquo;Apply — 1 tap&rdquo; button here.
             </p>
           </>
+        ) : applied ? (
+          <>
+            <div className="h-[50px] w-full rounded-[10px] border-[1.5px] border-royal bg-white text-[14.5px] font-semibold text-royal grid place-items-center">
+              Applied ✓ — waiting for reply
+            </div>
+            <button
+              onClick={onWithdraw}
+              className="mt-[7px] w-full text-center text-[11.5px] font-semibold text-red hover:underline"
+            >
+              Withdraw application
+            </button>
+          </>
         ) : (
           <button
             onClick={onApply}
-            disabled={applied}
-            className={`h-[50px] w-full rounded-[10px] text-[14.5px] font-semibold ${
-              applied
-                ? "border-[1.5px] border-royal bg-white text-royal"
-                : "bg-amber text-ink hover:bg-[#E99B16]"
-            }`}
+            className="h-[50px] w-full rounded-[10px] bg-amber text-[14.5px] font-semibold text-ink hover:bg-[#E99B16]"
           >
-            {applied ? "Applied ✓ — waiting for reply" : "Apply — 1 tap"}
+            Apply — 1 tap
           </button>
         )}
       </div>

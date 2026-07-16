@@ -2,6 +2,9 @@
 
 export const MACTAN_CENTER = { lat: 10.3057, lng: 123.9678 };
 
+/** The "gigs near you" promise, in metres. Mirrors apps/mobile/src/lib/geo.ts. */
+export const FEED_RADIUS_M = 3000;
+
 export function distanceMeters(
   a: { lat: number; lng: number },
   b: { lat: number; lng: number },

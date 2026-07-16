@@ -1,11 +1,18 @@
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GIG_TYPE_ICON, Icon, IconName } from "../../src/components/icon";
 import { Stepper } from "../../src/components/stepper";
 import { Card, MonoBadge, Press, SectionLabel } from "../../src/components/ui";
-import { WORKER_BADGES, gigById, useGigStore, workerStatusIndex } from "../../src/store/gig-store";
+import {
+  WORKER_BADGES,
+  gigById,
+  useGigStore,
+  workerStatusIndex,
+  type PendingApp,
+} from "../../src/store/gig-store";
 import { font, palette, radius } from "../../src/theme";
 
 function HistoryRow({
@@ -41,12 +48,59 @@ function HistoryRow({
   );
 }
 
+function AppliedRow({ applicationId, gig }: PendingApp) {
+  const router = useRouter();
+  const withdrawApp = useGigStore((s) => s.withdrawApp);
+  const [busy, setBusy] = useState(false);
+
+  const withdraw = async () => {
+    if (busy) return;
+    setBusy(true);
+    await withdrawApp(applicationId);
+    setBusy(false);
+  };
+
+  return (
+    <Card style={{ overflow: "hidden" }}>
+      <Press
+        style={styles.appliedTop}
+        onPress={() => router.push({ pathname: "/gig/[id]", params: { id: gig.id } })}
+        haptic={false}
+      >
+        <View style={styles.gigIcon}>
+          <Icon name={GIG_TYPE_ICON[gig.type] ?? "briefcase"} size={20} color={palette.royal} strokeWidth={1.8} />
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={styles.gigTitle} numberOfLines={1}>
+            {gig.t}
+          </Text>
+          <Text style={styles.gigMeta} numberOfLines={1}>
+            {gig.biz} · {gig.when}
+          </Text>
+        </View>
+        <Text style={styles.gigPay}>₱{gig.pay}</Text>
+      </Press>
+      <View style={styles.appliedFoot}>
+        <Text style={styles.appliedNote}>Waiting for a reply</Text>
+        <Press
+          style={[styles.withdrawBtn, busy && { opacity: 0.5 }]}
+          onPress={withdraw}
+          disabled={busy}
+        >
+          <Text style={styles.withdrawLabel}>{busy ? "Withdrawing…" : "Withdraw"}</Text>
+        </Press>
+      </View>
+    </Card>
+  );
+}
+
 export default function MyGigsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const wStatus = useGigStore((s) => s.wStatus);
   const wGig = useGigStore((s) => s.wGig);
   const hist = useGigStore((s) => s.hist);
+  const pendingApps = useGigStore((s) => s.pendingApps);
   const gig = gigById(wGig);
 
   const hasCurrent = !!wStatus && wStatus !== "RATED";
@@ -93,21 +147,25 @@ export default function MyGigsScreen() {
               <View style={{ paddingHorizontal: 16, paddingBottom: 14, paddingTop: 2 }}>
                 <Stepper codes={["APPLIED", "MATCHED", "ON SITE", "DONE"]} index={stepIndex} labels={false} />
               </View>
-              <Press
-                style={styles.activeCta}
-                onPress={() =>
-                  wStatus === "APPLIED"
-                    ? router.push({ pathname: "/gig/[id]", params: { id: gig.id } })
-                    : router.push("/active")
-                }
-              >
-                <Text style={styles.activeCtaLabel}>
-                  {wStatus === "APPLIED" ? "View application" : "Open gig"}
-                </Text>
+              <Press style={styles.activeCta} onPress={() => router.push("/active")}>
+                <Text style={styles.activeCtaLabel}>Open gig</Text>
               </Press>
             </Card>
           </>
-        ) : !wStatus ? (
+        ) : null}
+
+        {pendingApps.length > 0 && (
+          <>
+            <SectionLabel style={{ paddingHorizontal: 4, paddingTop: hasCurrent ? 8 : 0 }}>
+              Applied · {pendingApps.length}
+            </SectionLabel>
+            {pendingApps.map((p) => (
+              <AppliedRow key={p.applicationId} {...p} />
+            ))}
+          </>
+        )}
+
+        {!hasCurrent && pendingApps.length === 0 && (
           <View style={styles.emptyCard}>
             <View style={styles.emptyIcon}>
               <Icon name="briefcase" size={22} color={palette.muted} strokeWidth={1.8} />
@@ -120,7 +178,7 @@ export default function MyGigsScreen() {
               <Text style={styles.emptyCtaLabel}>Browse gigs</Text>
             </Press>
           </View>
-        ) : null}
+        )}
 
         {hist.length > 0 && (
           <SectionLabel style={{ paddingHorizontal: 4, paddingTop: 8 }}>History</SectionLabel>
@@ -210,6 +268,36 @@ const styles = StyleSheet.create({
     fontFamily: font.sansSemiBold,
     fontSize: 14,
     color: palette.white,
+  },
+  appliedTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+  },
+  appliedFoot: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingLeft: 14,
+    paddingRight: 8,
+    paddingBottom: 8,
+    paddingTop: 2,
+  },
+  appliedNote: {
+    fontFamily: font.sans,
+    fontSize: 12,
+    color: palette.muted,
+  },
+  withdrawBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radius.sm,
+  },
+  withdrawLabel: {
+    fontFamily: font.sansSemiBold,
+    fontSize: 12.5,
+    color: palette.red,
   },
   emptyCard: {
     borderWidth: 1.5,

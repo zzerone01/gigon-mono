@@ -1,3 +1,4 @@
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
@@ -22,14 +23,30 @@ import { font, palette, radius } from "../src/theme";
 const TYPES = GIG_TYPES;
 const DURATIONS = ["1 hr", "2 hrs", "3 hrs"];
 
-/** Today + the next 7 days as selectable start dates. */
+/** Must match MAX_DAYS_AHEAD in apps/app/app/api/gigs/route.ts — the server 422s past it. */
+const MAX_DAYS_AHEAD = 30;
+
+/** Local "YYYY-MM-DD" — never toISOString(), which would shift across the UTC line. */
+function isoDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate(),
+  ).padStart(2, "0")}`;
+}
+
+function dateLabel(value: string): string {
+  const d = new Date(`${value}T00:00:00`);
+  const today = isoDate(new Date());
+  if (value === today) return "Today";
+  if (value === isoDate(new Date(Date.now() + 86400000))) return "Tomorrow";
+  return d.toLocaleDateString("en-PH", { weekday: "short", month: "short", day: "numeric" });
+}
+
+/** Today + the next 7 days as quick chips; further out goes through the picker. */
 function dayChoices() {
   const out: { value: string; label: string }[] = [];
   for (let i = 0; i < 8; i++) {
     const d = new Date(Date.now() + i * 86400000);
-    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-      d.getDate(),
-    ).padStart(2, "0")}`;
+    const value = isoDate(d);
     const label =
       i === 0
         ? "Today"
@@ -48,6 +65,8 @@ export default function PostGigScreen() {
   const bizLabel = `${s.profile?.business_name ?? "Your business"} · ${s.profile?.area ?? "Philippines"}`;
   const days = useMemo(dayChoices, []);
   const curDate = s.pfDate || days[0]!.value;
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const isCustomDate = !days.some((d) => d.value === curDate);
   const bizLat = s.profile?.lat ?? MACTAN_CENTER.lat;
   const bizLng = s.profile?.lng ?? MACTAN_CENTER.lng;
   const pinMoved = s.pfLat != null;
@@ -133,7 +152,34 @@ export default function PostGigScreen() {
                 height={36}
               />
             ))}
+            {/* Anything past the quick chips — the chips used to be the ceiling. */}
+            <Chip
+              label={isCustomDate ? `📅 ${dateLabel(curDate)}` : "📅 Pick a date"}
+              active={isCustomDate}
+              onPress={() => setPickerOpen(true)}
+              height={36}
+            />
           </ScrollView>
+          {pickerOpen && (
+            <DateTimePicker
+              value={new Date(`${curDate}T00:00:00`)}
+              mode="date"
+              display={Platform.OS === "ios" ? "inline" : "default"}
+              minimumDate={new Date(new Date().setHours(0, 0, 0, 0))}
+              maximumDate={new Date(Date.now() + MAX_DAYS_AHEAD * 86400000)}
+              onChange={(event, picked) => {
+                if (Platform.OS !== "ios") setPickerOpen(false);
+                if (event.type === "dismissed" || !picked) return;
+                const value = isoDate(picked);
+                s.setPostField({ pfDate: value, pfWhen: dateLabel(value) });
+              }}
+            />
+          )}
+          {pickerOpen && Platform.OS === "ios" && (
+            <Press style={styles.pickerDone} onPress={() => setPickerOpen(false)}>
+              <Text style={styles.pickerDoneLabel}>Done</Text>
+            </Press>
+          )}
           <TextInput
             value={s.pfTime}
             onChangeText={(v) => s.setPostField({ pfTime: v })}
@@ -306,6 +352,16 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     textTransform: "uppercase",
     color: palette.success,
+  },
+  pickerDone: {
+    alignSelf: "flex-end",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  pickerDoneLabel: {
+    fontFamily: font.sansSemiBold,
+    fontSize: 13.5,
+    color: palette.royal,
   },
   label: {
     fontFamily: font.sansSemiBold,

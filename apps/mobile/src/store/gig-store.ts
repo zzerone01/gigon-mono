@@ -22,12 +22,14 @@ import {
   type WorkerStats,
 } from "../data/mock";
 import { api } from "../lib/api";
-import { MACTAN_CENTER } from "../lib/geo";
+import { FEED_RADIUS_M, MACTAN_CENTER, distanceMeters, reverseGeocodeArea } from "../lib/geo";
 import { registerPushToken, unregisterPushToken } from "../lib/notifications";
 import { supabase } from "../lib/supabase";
 
 export type Role = "worker" | "employer";
 export type WorkerStatus = "APPLIED" | "MATCHED" | "IN_PROGRESS" | "COMPLETED" | "RATED";
+/** An application the business hasn't answered yet — withdrawable. */
+export type PendingApp = { applicationId: string; gig: Gig };
 export type EmployerStatus = "POSTED" | "MATCHED" | "IN_PROGRESS" | "COMPLETED" | "RATED";
 export type SheetKind = "match" | "noshow" | "dispute" | "cancel" | "cancelPost";
 
@@ -80,6 +82,11 @@ interface GigState {
   // worker
   feed: Gig[];
   applied: Record<string, boolean>;
+  /** Open applications (APPLIED, gig still POSTED) — the worker can withdraw these. */
+  pendingApps: PendingApp[];
+  /** True when nothing was within FEED_RADIUS_M and the feed shows the nearest instead. */
+  feedWidened: boolean;
+  /** Match-backed state only; a pending application is NOT a current gig. */
   wStatus: WorkerStatus | null;
   wGig: string | null;
   hist: HistItem[];
@@ -149,6 +156,7 @@ interface GigState {
     availability?: string;
     lat?: number;
     lng?: number;
+    area?: string;
   }) => Promise<string | null>;
   signOut: () => Promise<void>;
   /** Permanently delete the account server-side, then clear local state. */
@@ -162,6 +170,8 @@ interface GigState {
   loadWorker: () => Promise<void>;
   loadEmployer: () => Promise<void>;
   apply: (gigId: string) => Promise<void>;
+  /** Take back an application the business hasn't answered yet. */
+  withdrawApp: (applicationId: string) => Promise<void>;
   arrive: () => Promise<void>;
   enterPinDigit: (d: string) => void;
   deletePinDigit: () => void;
@@ -408,6 +418,8 @@ async function loadChat(get: () => GigState, matchId: string | null) {
 const initialFlow = {
   feed: [] as Gig[],
   applied: {} as Record<string, boolean>,
+  pendingApps: [] as PendingApp[],
+  feedWidened: false,
   wStatus: null as WorkerStatus | null,
   wGig: null as string | null,
   hist: [] as HistItem[],
@@ -535,11 +547,14 @@ export const useGigStore = create<GigState>((set, get) => ({
       if (!redeemed.ok) return "That invite code isn't valid. Pilot businesses are invite-only.";
     }
     const c = coords ?? MACTAN_CENTER;
+    // Name the area from the fix we just took; "Philippines" is only the
+    // fallback when reverse geocoding is unavailable or the user declined.
+    const area = (coords ? await reverseGeocodeArea(coords) : null) ?? "Philippines";
     try {
       await api.post("/api/onboarding", {
         name: st.onbName,
         role: st.onbRole,
-        area: "Philippines",
+        area,
         lat: c.lat,
         lng: c.lng,
       });
@@ -577,6 +592,8 @@ export const useGigStore = create<GigState>((set, get) => ({
           ...(patch.lat !== undefined && patch.lng !== undefined
             ? { lat: patch.lat, lng: patch.lng }
             : {}),
+          // mirrors the server rule: the label only moves with a fix
+          ...(patch.area !== undefined && patch.lat !== undefined ? { area: patch.area } : {}),
         },
       });
     }
@@ -647,7 +664,13 @@ export const useGigStore = create<GigState>((set, get) => ({
         .eq("status", "POSTED")
         .gt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: false }),
-      supabase.from("applications").select("*").eq("worker_id", uid),
+      // join the gig: an application must render from its own row, not from
+      // whatever happens to be in the feed right now
+      supabase
+        .from("applications")
+        .select(`*, gig:gigs(${GIG_SELECT})`)
+        .eq("worker_id", uid)
+        .order("created_at", { ascending: false }),
       supabase
         .from("matches")
         .select(`*, gig:gigs(${GIG_SELECT})`)
@@ -666,17 +689,35 @@ export const useGigStore = create<GigState>((set, get) => ({
     ]);
 
     const rows = (gigsRes.data ?? []) as unknown as GigWithEmployer[];
-    const feed = rows
+    // Sort on real metres rather than re-parsing the formatted label, then keep
+    // the promise the copy makes: gigs near you. Supply is thin during the
+    // pilot, so rather than show an empty map to anyone outside the zone we
+    // widen to the nearest and say so (feedWidened).
+    const ranked = rows
       .filter((g) => g.employer_id !== uid)
-      .map((g) => mapGig(g, you))
-      .sort((a, b) => parseFloat(a.dist) * (a.dist.includes("km") ? 1000 : 1) -
-        parseFloat(b.dist) * (b.dist.includes("km") ? 1000 : 1));
+      .map((g) => ({ row: g, m: distanceMeters(you, { lat: g.lat, lng: g.lng }) }))
+      .sort((a, b) => a.m - b.m);
+    const near = ranked.filter((r) => r.m <= FEED_RADIUS_M);
+    const feedWidened = near.length === 0 && ranked.length > 0;
+    const feed = (near.length ? near : ranked).map((r) => mapGig(r.row, you));
     gigIndex = Object.fromEntries(feed.map((g) => [g.id, g]));
 
-    const appRows = appsRes.data ?? [];
+    const appRows = (appsRes.data ?? []) as unknown as Array<{
+      id: string;
+      gig_id: string;
+      status: string;
+      gig: GigWithEmployer | null;
+    }>;
     const applied = Object.fromEntries(
       appRows.filter((a) => a.status !== "WITHDRAWN").map((a) => [a.gig_id, true]),
     );
+    // Every open application, not just the first one that happens to be in the
+    // feed. Once the gig leaves POSTED the business has moved on, so it drops
+    // off the list rather than sitting there un-withdrawable.
+    const pendingApps: PendingApp[] = appRows
+      .filter((a) => a.status === "APPLIED" && a.gig?.status === "POSTED")
+      .map((a) => ({ applicationId: a.id, gig: mapGig(a.gig!, you) }));
+    for (const p of pendingApps) gigIndex[p.gig.id] ??= p.gig;
 
     const m = matchRes.data as
       | (NonNullable<typeof matchRes.data> & { gig: GigWithEmployer })
@@ -709,11 +750,6 @@ export const useGigStore = create<GigState>((set, get) => ({
     } else {
       wMatchId = null;
       wMatchGig = null;
-      const pending = appRows.find((a) => a.status === "APPLIED" && gigIndex[a.gig_id]);
-      if (pending) {
-        wStatus = "APPLIED";
-        wGig = pending.gig_id;
-      }
       await loadChat(get, null);
     }
 
@@ -732,10 +768,13 @@ export const useGigStore = create<GigState>((set, get) => ({
       type: h.gig.type,
     }));
 
-    set({ feed, applied, wStatus, wGig, dFiled, disputeTicket, hist });
+    set({ feed, feedWidened, applied, pendingApps, wStatus, wGig, dFiled, disputeTicket, hist });
   },
 
   apply: async (gigId) => {
+    // Already applied — don't re-post. The server is idempotent, but a second
+    // call would still push "New applicant" at the employer again.
+    if (get().applied[gigId]) return;
     try {
       await api.post(`/api/gigs/${gigId}/apply`);
     } catch (error) {
@@ -744,6 +783,21 @@ export const useGigStore = create<GigState>((set, get) => ({
     }
     const g = gigById(gigId);
     get().showToast("Application sent", `${g.biz} is reviewing applicants — 1-tap, no cover letter`);
+    await get().loadWorker();
+  },
+
+  withdrawApp: async (applicationId) => {
+    const target = get().pendingApps.find((p) => p.applicationId === applicationId);
+    try {
+      await api.post(`/api/applications/${applicationId}/withdraw`);
+    } catch (error) {
+      get().showToast("Couldn't withdraw", (error as Error).message);
+      return;
+    }
+    get().showToast(
+      "Application withdrawn",
+      target ? `You're no longer applied to “${target.gig.t}”` : "You're no longer applied",
+    );
     await get().loadWorker();
   },
 

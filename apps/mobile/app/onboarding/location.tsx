@@ -57,8 +57,8 @@ export default function LocationScreen() {
         <View style={{ gap: 6, paddingHorizontal: 4 }}>
           <Text style={styles.heading}>See gigs near you</Text>
           <Text style={styles.sub}>
-            GigOn only shows gigs within 2–3 km of you. Your exact location is never shown to other
-            users. You can choose in the next step.
+            GigOn shows the gigs closest to you — around 2–3 km in the pilot zone. Your exact
+            location is never shown to other users. You can choose in the next step.
           </Text>
         </View>
         <View style={styles.mapBox}>
